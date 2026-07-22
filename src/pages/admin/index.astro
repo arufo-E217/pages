@@ -1,6 +1,7 @@
 ---
 import Header from '../../components/Header.astro';
 import Footer from '../../components/Footer.astro';
+import '../../styles/style.css';
 
 // 今日の日時を YYYY-MM-DDTHH:mm 形式で初期値にする
 const now = new Date();
@@ -18,7 +19,6 @@ const defaultFilename = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(n
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>日記管理画面 - あるふぉーとのゲーム置き場</title>
     <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;500;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/style.css">
     <style>
         .admin-form {
             display: flex;
