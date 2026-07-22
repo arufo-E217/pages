@@ -2,14 +2,6 @@
 import Header from '../../components/Header.astro';
 import Footer from '../../components/Footer.astro';
 import '../../styles/style.css';
-
-// 今日の日時を YYYY-MM-DDTHH:mm 形式で初期値にする
-const now = new Date();
-const pad = (n: number) => String(n).padStart(2, '0');
-const defaultDateTime = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
-
-// 自動ファイル名用の文字列生成（YYYY-MM-DD-HH-MM-SS）
-const defaultFilename = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}-${pad(now.getHours())}-${pad(now.getMinutes())}-${pad(now.getSeconds())}`;
 ---
 
 <!DOCTYPE html>
@@ -124,13 +116,13 @@ const defaultFilename = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(n
 
                 <div class="form-group">
                     <label for="date">日時</label>
-                    <input type="datetime-local" id="date" required value={defaultDateTime}>
+                    <input type="datetime-local" id="date" required>
                 </div>
 
                 <div class="form-group">
                     <label for="filename">ファイル名（半角英数字）</label>
-                    <input type="text" id="filename" required value={defaultFilename} placeholder="例：2026-07-22-22-15-00">
-                    <span style="font-size: 0.8rem; color: #888;">※自動で日時が入ります。変更したい場合は書き換えてください（.mdは自動でつきます）</span>
+                    <input type="text" id="filename" required placeholder="例：20260722221500">
+                    <span style="font-size: 0.8rem; color: #888;">※自動で数字のみの日時が入ります（.mdは自動でつきます）</span>
                 </div>
 
                 <div class="form-group">
@@ -158,6 +150,35 @@ const defaultFilename = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(n
         if (savedToken) (document.getElementById('ghToken') as HTMLInputElement).value = savedToken;
         if (savedOwner) (document.getElementById('ghOwner') as HTMLInputElement).value = savedOwner;
         if (savedRepo) (document.getElementById('ghRepo') as HTMLInputElement).value = savedRepo;
+
+        // 端末のローカル時間を正確に取得してフォームの初期値にセットする関数
+        const setLocalDateTimeValues = () => {
+            const now = new Date();
+            const pad = (n: number) => String(n).padStart(2, '0');
+            
+            const year = now.getFullYear();
+            const month = pad(now.getMonth() + 1);
+            const day = pad(now.getDate());
+            const hours = pad(now.getHours());
+            const minutes = pad(now.getMinutes());
+            const seconds = pad(now.getSeconds());
+
+            // 1. 日時ピッカー用 (YYYY-MM-DDTHH:mm)
+            const datetimeLocalVal = `${year}-${month}-${day}T${hours}:${minutes}`;
+            const dateInput = document.getElementById('date') as HTMLInputElement;
+            if (dateInput && !dateInput.value) {
+                dateInput.value = datetimeLocalVal;
+            }
+
+            // 2. ファイル名用 (YYYYMMDDHHmmss ※数字のみ)
+            const filenameVal = `${year}${month}${day}${hours}${minutes}${seconds}`;
+            const filenameInput = document.getElementById('filename') as HTMLInputElement;
+            if (filenameInput && !filenameInput.value) {
+                filenameInput.value = filenameVal;
+            }
+        };
+
+        setLocalDateTimeValues();
 
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -211,13 +232,13 @@ ${content}
                     resultMsg.style.color = '#2e7d32';
                     resultMsg.textContent = '🎉 成功！GitHubへのコミットが完了しました。数分後にサイトが自動更新されます！';
                     
-                    // 投稿成功後、ファイル名も新しい現在時刻のファイル名に再生成してリセットする
+                    // 投稿成功後、タイトルと本文をクリアし、ファイル名だけ新しい現在時刻に再生成する
                     const now = new Date();
                     const pad = (n: number) => String(n).padStart(2, '0');
-                    const newDefaultFilename = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}-${pad(now.getHours())}-${pad(now.getMinutes())}-${pad(now.getSeconds())}`;
+                    const newFilenameVal = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
                     
                     (document.getElementById('title') as HTMLInputElement).value = '';
-                    (document.getElementById('filename') as HTMLInputElement).value = newDefaultFilename;
+                    (document.getElementById('filename') as HTMLInputElement).value = newFilenameVal;
                     (document.getElementById('content') as HTMLTextAreaElement).value = '';
                 } else {
                     const errData = await response.json();
