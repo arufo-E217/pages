@@ -266,7 +266,7 @@ import '../../styles/style.css';
                         imageMsg.textContent = '✅ 画像のアップロード成功！本文に挿入しました';
 
                         // MarkdownではなくHTMLタグ（imgタグ）で挿入
-                        const htmlImageTag = `\n<img src="/images/diaries/${safeImgName}" alt="diary-image" style="max-width: 100%; border-radius: 12px; margin: 10px 0;">\n`;
+                        const htmlImageTag = `\n<img src="pages/images/diaries/${safeImgName}" alt="diary-image" style="max-width: 100%; border-radius: 12px; margin: 10px 0;">\n`;
                         const startPos = contentArea.selectionStart;
                         const endPos = contentArea.selectionEnd;
                         const text = contentArea.value;
