@@ -114,7 +114,7 @@ import '../../styles/style.css';
     <main>
         <div class="middle-page-container" style="padding-top: 140px; max-width: 800px; margin: 0 auto; padding-left: 20px; padding-right: 20px; padding-bottom: 60px;">
             <div class="welcome-msg-wrapper" style="margin-bottom: 20px;">
-                <p class="welcome-msg" style="opacity: 1; transform: translateY(0);">-日記管理画面-<br>日記マークダウンファイル生成・投稿</p>
+                <p class="welcome-msg" style="opacity: 1; transform: translateY(0);">-日記管理画面-<br>日記ファイル生成・投稿</p>
             </div>
 
             <form id="diaryForm" class="admin-form">
@@ -153,7 +153,7 @@ import '../../styles/style.css';
 
                 <div class="form-group">
                     <label for="filename">ファイル名（半角英数字）</label>
-                    <input type="text" id="filename" required placeholder="例：20260722221500">
+                    <input type="text" id="filename" required placeholder="例：20260723221500">
                     <span style="font-size: 0.8rem; color: #888;">※自動で数字のみの日時が入ります（.mdは自動でつきます）</span>
                 </div>
 
@@ -162,9 +162,9 @@ import '../../styles/style.css';
                     <div class="image-upload-bar">
                         <label for="imageFile" class="upload-btn-label">🖼️ 画像を選択してアップロード</label>
                         <input type="file" id="imageFile" accept="image/*">
-                        <span id="image-msg">画像を選ぶと自動でGitHubに保存され、本文に挿入されます</span>
+                        <span id="image-msg">画像を選ぶと自動でGitHubに保存され、HTMLタグで本文に挿入されます</span>
                     </div>
-                    <textarea id="content" rows="10" placeholder="ここに日記の本文を書くよ..."></textarea>
+                    <textarea id="content" rows="10" placeholder="ここに日記の本文を書くよ... (改行は自動でHTMLタグに変換されます)"></textarea>
                 </div>
 
                 <button type="submit" class="submit-btn">✨ GitHubに日記をCommitする</button>
@@ -218,7 +218,7 @@ import '../../styles/style.css';
 
         setLocalDateTimeValues();
 
-        // 画像選択時の処理（即座にGitHubにアップロードしてMarkdownを挿入）
+        // 画像選択時の処理（GitHubにアップロードしてHTMLタグを挿入）
         imageFileInput.addEventListener('change', async () => {
             const file = imageFileInput.files?.[0];
             if (!file) return;
@@ -237,14 +237,12 @@ import '../../styles/style.css';
             imageMsg.textContent = '🚀 画像をGitHubへアップロード中...';
 
             try {
-                // ファイル名をユニークにする（例: 20260722235600_filename.jpg）
                 const now = new Date();
                 const pad = (n: number) => String(n).padStart(2, '0');
                 const timestamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
                 const safeImgName = `${timestamp}_${file.name.replace(/[^a-zA-Z0-9_.-]/g, '_')}`;
                 const imagePath = `public/images/diaries/${safeImgName}`;
 
-                // 画像ファイルをBase64に変換
                 const reader = new FileReader();
                 reader.readAsDataURL(file);
                 reader.onload = async () => {
@@ -267,15 +265,15 @@ import '../../styles/style.css';
                         imageMsg.style.color = '#2e7d32';
                         imageMsg.textContent = '✅ 画像のアップロード成功！本文に挿入しました';
 
-                        // Markdownタグを本文に挿入（Astroではpublicフォルダ内のファイルは /images/diaries/... で参照可能）
-                        const markdownImageTag = `\n![](/images/diaries/${safeImgName})\n`;
+                        // MarkdownではなくHTMLタグ（imgタグ）で挿入
+                        const htmlImageTag = `\n<img src="/images/diaries/${safeImgName}" alt="diary-image" style="max-width: 100%; border-radius: 12px; margin: 10px 0;">\n`;
                         const startPos = contentArea.selectionStart;
                         const endPos = contentArea.selectionEnd;
                         const text = contentArea.value;
 
-                        contentArea.value = text.substring(0, startPos) + markdownImageTag + text.substring(endPos);
+                        contentArea.value = text.substring(0, startPos) + htmlImageTag + text.substring(endPos);
                         contentArea.focus();
-                        imageFileInput.value = ''; // リセット
+                        imageFileInput.value = '';
                     } else {
                         const err = await res.json();
                         imageMsg.style.color = '#c62828';
@@ -299,7 +297,10 @@ import '../../styles/style.css';
             const title = (document.getElementById('title') as HTMLInputElement).value;
             const date = (document.getElementById('date') as HTMLInputElement).value;
             const filename = (document.getElementById('filename') as HTMLInputElement).value.trim();
-            const content = (document.getElementById('content') as HTMLTextAreaElement).value;
+            const rawContent = (document.getElementById('content') as HTMLTextAreaElement).value;
+
+            // 改行を <br> に自動変換（HTMLタグがそのまま反映されるようにする）
+            const content = rawContent.replace(/\r\n|\r|\n/g, '<br>\n');
 
             localStorage.setItem('gh_token', token);
             localStorage.setItem('gh_owner', owner);
