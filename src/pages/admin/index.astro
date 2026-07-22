@@ -62,6 +62,38 @@ import '../../styles/style.css';
         .submit-btn:hover {
             opacity: 0.9;
         }
+        .image-upload-bar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: #fff5f7;
+            padding: 12px 16px;
+            border-radius: 12px;
+            border: 2px dashed #ff8fab;
+        }
+        .image-upload-bar input[type="file"] {
+            display: none;
+        }
+        .upload-btn-label {
+            background-color: white;
+            color: var(--accent-color, #ff8fab);
+            border: 2px solid var(--accent-color, #ff8fab);
+            padding: 8px 16px;
+            border-radius: 10px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .upload-btn-label:hover {
+            background-color: var(--accent-color, #ff8fab);
+            color: white;
+        }
+        #image-msg {
+            font-size: 0.85rem;
+            color: #666;
+            font-weight: 700;
+        }
         #result-msg {
             font-weight: 700;
             text-align: center;
@@ -126,7 +158,12 @@ import '../../styles/style.css';
                 </div>
 
                 <div class="form-group">
-                    <label for="content">本文 (Markdown形式)</label>
+                    <label>本文 & 画像挿入</label>
+                    <div class="image-upload-bar">
+                        <label for="imageFile" class="upload-btn-label">🖼️ 画像を選択してアップロード</label>
+                        <input type="file" id="imageFile" accept="image/*">
+                        <span id="image-msg">画像を選ぶと自動でGitHubに保存され、本文に挿入されます</span>
+                    </div>
                     <textarea id="content" rows="10" placeholder="ここに日記の本文を書くよ..."></textarea>
                 </div>
 
@@ -141,6 +178,9 @@ import '../../styles/style.css';
     <script>
         const form = document.getElementById('diaryForm') as HTMLFormElement;
         const resultMsg = document.getElementById('result-msg') as HTMLElement;
+        const imageFileInput = document.getElementById('imageFile') as HTMLInputElement;
+        const imageMsg = document.getElementById('image-msg') as HTMLElement;
+        const contentArea = document.getElementById('content') as HTMLTextAreaElement;
 
         // スマホのブラウザ（LocalStorage）から前回のGitHub設定を自動復元する
         const savedToken = localStorage.getItem('gh_token');
@@ -163,14 +203,12 @@ import '../../styles/style.css';
             const minutes = pad(now.getMinutes());
             const seconds = pad(now.getSeconds());
 
-            // 1. 日時ピッカー用 (YYYY-MM-DDTHH:mm)
             const datetimeLocalVal = `${year}-${month}-${day}T${hours}:${minutes}`;
             const dateInput = document.getElementById('date') as HTMLInputElement;
             if (dateInput && !dateInput.value) {
                 dateInput.value = datetimeLocalVal;
             }
 
-            // 2. ファイル名用 (YYYYMMDDHHmmss ※数字のみ)
             const filenameVal = `${year}${month}${day}${hours}${minutes}${seconds}`;
             const filenameInput = document.getElementById('filename') as HTMLInputElement;
             if (filenameInput && !filenameInput.value) {
@@ -180,6 +218,77 @@ import '../../styles/style.css';
 
         setLocalDateTimeValues();
 
+        // 画像選択時の処理（即座にGitHubにアップロードしてMarkdownを挿入）
+        imageFileInput.addEventListener('change', async () => {
+            const file = imageFileInput.files?.[0];
+            if (!file) return;
+
+            const token = (document.getElementById('ghToken') as HTMLInputElement).value.trim();
+            const owner = (document.getElementById('ghOwner') as HTMLInputElement).value.trim();
+            const repo = (document.getElementById('ghRepo') as HTMLInputElement).value.trim();
+
+            if (!token || !owner || !repo) {
+                alert('先に上部の「GitHub連携設定（トークン、ユーザー名、リポジトリ名）」を入力してください！');
+                imageFileInput.value = '';
+                return;
+            }
+
+            imageMsg.style.color = '#ff8fab';
+            imageMsg.textContent = '🚀 画像をGitHubへアップロード中...';
+
+            try {
+                // ファイル名をユニークにする（例: 20260722235600_filename.jpg）
+                const now = new Date();
+                const pad = (n: number) => String(n).padStart(2, '0');
+                const timestamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+                const safeImgName = `${timestamp}_${file.name.replace(/[^a-zA-Z0-9_.-]/g, '_')}`;
+                const imagePath = `public/images/diaries/${safeImgName}`;
+
+                // 画像ファイルをBase64に変換
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = async () => {
+                    const base64Data = (reader.result as string).split(',')[1];
+
+                    const res = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${imagePath}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            message: `Upload image: ${safeImgName}`,
+                            content: base64Data,
+                            branch: 'main'
+                        })
+                    });
+
+                    if (res.ok) {
+                        imageMsg.style.color = '#2e7d32';
+                        imageMsg.textContent = '✅ 画像のアップロード成功！本文に挿入しました';
+
+                        // Markdownタグを本文に挿入（Astroではpublicフォルダ内のファイルは /images/diaries/... で参照可能）
+                        const markdownImageTag = `\n![](/images/diaries/${safeImgName})\n`;
+                        const startPos = contentArea.selectionStart;
+                        const endPos = contentArea.selectionEnd;
+                        const text = contentArea.value;
+
+                        contentArea.value = text.substring(0, startPos) + markdownImageTag + text.substring(endPos);
+                        contentArea.focus();
+                        imageFileInput.value = ''; // リセット
+                    } else {
+                        const err = await res.json();
+                        imageMsg.style.color = '#c62828';
+                        imageMsg.textContent = `❌ アップロード失敗: ${err.message || 'エラー'}`;
+                    }
+                };
+            } catch (e) {
+                imageMsg.style.color = '#c62828';
+                imageMsg.textContent = '❌ 画像の読み込みに失敗しました';
+            }
+        });
+
+        // 記事全体の送信処理
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
 
@@ -192,7 +301,6 @@ import '../../styles/style.css';
             const filename = (document.getElementById('filename') as HTMLInputElement).value.trim();
             const content = (document.getElementById('content') as HTMLTextAreaElement).value;
 
-            // 次回から入力を省略できるようにスマホに記憶させる
             localStorage.setItem('gh_token', token);
             localStorage.setItem('gh_owner', owner);
             localStorage.setItem('gh_repo', repo);
@@ -208,7 +316,6 @@ date: "${date}"
 ${content}
 `;
 
-            // GitHub API用にBase64エンコード
             const contentEncoded = btoa(unescape(encodeURIComponent(mdContent)));
 
             resultMsg.style.color = '#666';
@@ -224,7 +331,7 @@ ${content}
                     body: JSON.stringify({
                         message: `Add diary: ${title}`,
                         content: contentEncoded,
-                        branch: 'main' // 必要に応じて master に変更してください
+                        branch: 'main'
                     })
                 });
 
@@ -232,7 +339,6 @@ ${content}
                     resultMsg.style.color = '#2e7d32';
                     resultMsg.textContent = '🎉 成功！GitHubへのコミットが完了しました。数分後にサイトが自動更新されます！';
                     
-                    // 投稿成功後、タイトルと本文をクリアし、ファイル名だけ新しい現在時刻に再生成する
                     const now = new Date();
                     const pad = (n: number) => String(n).padStart(2, '0');
                     const newFilenameVal = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
