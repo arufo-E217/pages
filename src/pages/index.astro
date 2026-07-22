@@ -1,0 +1,158 @@
+---
+import { getCollection, render } from 'astro:content';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+
+import '../styles/style.css';
+
+// 2. 画像も個別にインポートする
+import slide1 from '../assets/images/slide1.png';
+import slide2 from '../assets/images/slide2.png';
+import slide3 from '../assets/images/slide3.png';
+import slide4 from '../assets/images/slide4.png';
+---
+
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>あるふぉーとのゲーム置き場 - Top</title>
+    <!-- Google Fonts: Zen Maru Gothic -->
+    <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <!-- ヘッダー -->
+    <Header />
+
+    <main>
+        <!-- ヒーローセクション（スライドショー） -->
+        <section class="heroSection">
+            <div class="hero-slideshow" id="heroSlideshow">
+                <!-- 3. インポートした変数を style 属性に埋め込む -->
+                <div class="hero-slide active" style={`background-image: url('${slide1.src}');`}></div>
+                <div class="hero-slide" style={`background-image: url('${slide2.src}');`}></div>
+                <div class="hero-slide" style={`background-image: url('${slide3.src}');`}></div>
+                <div class="hero-slide" style={`background-image: url('${slide4.src}');`}></div>
+            </div>
+
+            <div class="heroOverlay"></div>
+            <div class="heroContent">
+                <h2>Aruphy.K</h2>
+                <p>-Game developer / High school student-</p>
+            </div>
+            <div class="scroll-down-indicator">
+                <span>↓ scroll</span>
+            </div>
+        </section>
+
+        <!-- 中ページ -->
+        <div class="middle-page-container">
+            
+            <div class="welcome-msg-wrapper line-reveal-trigger">
+                <p class="welcome-msg">ようこそおいでなすった ゆっくりしていくがよい！</p>
+            </div>
+            
+            <div class="asymmetric-cards-wrapper">
+                <div class="asymmetric-card card-left-round fade-slide-left">
+                    <div class="card-inner-content">
+                        <div class="card-icon">🍡</div>
+                        <div class="card-text">
+                            <h3>About Me</h3>
+                            <p>名前 : あるふぉーと！
+                                <br>誕生日 : 2008/11/18
+                                <br>趣味 : ゲーム作り
+                                <br>生粋の気分屋
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="asymmetric-card card-right-round fade-slide-right">
+                    <div class="card-inner-content">
+                        <div class="card-icon">🏆</div>
+                        <div class="card-text">
+                            <h3>Achievements</h3>
+                            <p>
+                                <strong>Programming</strong>
+                                <br>C#, Python, JavaScript, HTML/CSS
+                                <br>AtCoder (<a href="https://atcoder.jp/users/arufo_E217" target="_blank" rel="noopener">arufo_E217</a>) - Algorithm🟤 Heuristic🟤
+                            </p>
+                            <p style="margin-top: 15px;">
+                                <strong>Unity</strong>
+                                <br>・Rhythm Game
+                                <br>・<a href="https://unityroom.com/games/function_love_equal_undefined" target="_blank" rel="noopener">visual novel</a>
+                                <br>・Shooting Games
+                            </p>
+                            <p style="margin-top: 15px;">
+                                <strong>Games</strong>
+                                <br>CHUNITHM -RATING max 16.42
+                                <br>maimai   -RATING max 12634
+                                <br>オンゲキ  -RATING max 17.644
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="link-section fade-up">
+                <h3>Links & Antenna</h3>
+                <div class="social-links">
+                    <a href="https://x.com/arufo_E217" target="_blank" rel="noopener" class="social-btn">X (Twitter)</a>
+                    <a href="#" class="social-btn">YouTube</a>
+                    <a href="#" class="social-btn">GitHub</a>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <Footer />
+
+    <!-- スクリプトの読み込み -->
+<!-- スクリプトの読み込み -->
+    <script>
+        // ==========================================
+        // Hero Slideshow & Scroll Animations
+        // ==========================================
+        document.addEventListener('DOMContentLoaded', () => {
+            // 1. ヒーローセクションのスライドショー
+            const slides = document.querySelectorAll('.hero-slide');
+            if (slides.length > 0) {
+                let currentSlide = 0;
+                const slideInterval = 5000; // 5秒ごとに切り替え
+
+                setInterval(() => {
+                    slides[currentSlide].classList.remove('active');
+                    currentSlide = (currentSlide + 1) % slides.length;
+                    slides[currentSlide].classList.add('active');
+                }, slideInterval);
+            }
+
+            // 2. スクロール監視によるゆったりアニメーション (Intersection Observer)
+            const targetElements = document.querySelectorAll('.line-reveal-trigger, .fade-slide-left, .fade-slide-right, .fade-up');
+
+            const observerOptions = {
+                root: null,
+                rootMargin: '0px 0px -20% 0px', // 画面下に20%入ってきたら発火
+                threshold: 0.15
+            };
+
+            const observer = new IntersectionObserver((entries, observer) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('show');
+                    }
+                });
+            }, observerOptions);
+
+            targetElements.forEach(el => {
+                observer.observe(el);
+            });
+        });
+    </script>
+</body>
+</html>
+</body>
+</html>

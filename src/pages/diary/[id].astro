@@ -1,0 +1,64 @@
+---
+import { getCollection, render } from 'astro:content';
+import Header from '../../components/Header.astro';
+import Footer from '../../components/Footer.astro';
+import '../../styles/style.css';
+
+// 1. どの日記ページが存在するのかをAstroに教える
+export async function getStaticPaths() {
+    const diaries = await getCollection('diaries');
+    return diaries.map((post) => ({
+        params: { id: post.id },
+        props: { post },
+    }));
+}
+
+// 2. 該当する記事のデータを受け取る
+const { post } = Astro.props;
+const { Content } = await render(post);
+---
+
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{post.data.title} - あるふぉーとのゲーム置き場</title>
+    <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <!-- 共通化したヘッダー -->
+    <Header />
+
+    <main>
+        <div class="middle-page-container" style="padding-top: 140px; max-width: 800px; margin: 0 auto; padding-left: 20px; padding-right: 20px; padding-bottom: 60px;">
+            <article style="width: 100%;">
+                
+                <p style="font-size: 0.85rem; color: #ff8fab; font-weight: 700; margin-bottom: 5px;">
+                    {post.data.date ? String(post.data.date).replace('T', ' ') : ''}
+                </p>
+                <h1 style="margin-bottom: 20px; font-size: 1.8rem; color: var(--accent-color);">
+                    {post.data.title}
+                </h1>
+
+                {/* 記事の本文（MarkdownをHTMLに変換したもの） */}
+                <div class="markdown-body" style="font-size: 1rem; color: #333; line-height: 1.8;">
+                    <Content />
+                </div>
+
+                <div style="margin-top: 40px;">
+                    <a href={`${import.meta.env.BASE_URL}/diary`} style="text-decoration: none; color: var(--accent-color); font-weight: 700;">
+                        ⬅️ 日記一覧に戻る
+                    </a>
+                </div>
+
+            </article>
+        </div>
+    </main>
+
+    <!-- 共通化したフッター -->
+    <Footer />
+
+</body>
+</html>

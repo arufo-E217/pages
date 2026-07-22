@@ -1,0 +1,113 @@
+---
+import { getCollection, render } from 'astro:content';
+import Header from '../../components/Header.astro';
+import Footer from '../../components/Footer.astro';
+
+import '../../styles/style.css';
+
+// diaries/ フォルダの中身を取得し、日付の新しい順に並び替える
+const allDiaries = await getCollection('diaries');
+allDiaries.sort((a, b) => new Date(b.data.date).getTime() - new Date(a.data.date).getTime());
+
+// 各記事をレンダリングするための準備
+const diariesWithContent = await Promise.all(
+    allDiaries.map(async (post) => {
+        const { Content } = await render(post);
+        return { ...post, Content };
+    })
+);
+---
+
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>日記一覧 - あるふぉーとのゲーム置き場</title>
+    <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        /* 3行に制限して高さを揃えるための専用スタイル */
+        .diary-preview-box {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            min-height: 5.5em; /* 3行分＋αの最低高さを確保してカードサイズを一定にする */
+        }
+        .markdown-body-preview-clamp {
+            display: -webkit-box;
+            -webkit-line-clamp: 3; /* 最大3行まで表示 */
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-size: 0.9rem;
+            color: #666;
+            margin: 0;
+        }
+        .read-more-link {
+            display: inline-block;
+            margin-top: 8px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--accent-color, #ff8fab);
+            text-decoration: none;
+        }
+        .read-more-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ヘッダー -->
+    <Header />
+
+    <main>
+        <div class="middle-page-container" style="padding-top: 140px;">
+            <div class="welcome-msg-wrapper">
+                <p class="welcome-msg" style="opacity: 1; transform: translateY(0);">日記一覧</p>
+            </div>
+
+            <!-- 日記カードのリスト -->
+            <div class="asymmetric-cards-wrapper">
+                {
+                    diariesWithContent.map((post) => {
+                        const { Content } = post; 
+
+                        return (
+                            <div class="asymmetric-card card-left-round" style="margin: 0 auto; width: 100%; border-radius: 30px;">
+                                <div class="card-inner-content">
+                                    <div class="card-icon">📖</div>
+                                    <div class="card-text" style="width: 100%;">
+                                        <p style="font-size: 0.85rem; color: #ff8fab; font-weight: 700; margin-bottom: 5px;">
+                                            {/* T をスペースに置き換えて「YYYY-MM-DD HH:mm」のように表示する */}
+                                            {post.data.date ? String(post.data.date).replace('T', ' ') : ''}
+                                        </p>
+                                        <h3 style="margin-bottom: 8px;">
+                                            <a href={`/diary/${post.id}`} style="text-decoration: none; color: var(--accent-color);">
+                                                {post.data.title || 'タイトルなし'}
+                                            </a>
+                                        </h3>
+
+                                        {/* 3行固定＆続きを見るリンクエリア */}
+                                        <div class="diary-preview-box">
+                                            <div class="markdown-body-preview-clamp">
+                                                <Content /> 
+                                            </div>
+                                            <a href={`${import.meta.env.BASE_URL}/diary/${post.id}`} class="read-more-link">
+                                                → 続きを見る
+                                            </a>
+                                        </div>
+
+                                    </div>
+                                </div>
+                            </div>
+                        )
+                    })
+                }
+            </div>
+        </div>
+    </main>
+
+    <Footer />
+</body>
+</html>
