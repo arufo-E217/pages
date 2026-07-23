@@ -224,6 +224,71 @@ body {
     opacity: 1;
     transform: translateY(0);
 }
+/* 新着日記セクション */
+.recent-diaries-section {
+    margin-top: 60px;
+    width: 100%;
+}
+
+.recent-diaries-section h3 {
+    margin-bottom: 20px;
+    font-size: 1.5rem;
+}
+
+/* 横並び＆スワイプ可能なカードコンテナ */
+.diary-cards-container {
+    display: flex;
+    gap: 20px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    padding-bottom: 15px;
+    scrollbar-width: thin;
+}
+
+/* カード全体の幅をコンパクトにする */
+.diary-card-sharp {
+    flex: 0 0 280px;
+    background: #fff;
+    border: 2px solid #333;
+    border-radius: 0px;
+    padding: 20px;
+    text-decoration: none;
+    color: inherit;
+    scroll-snap-align: start;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    box-shadow: 4px 4px 0px #333;
+}
+
+.diary-card-sharp:hover {
+    transform: translateY(-4px);
+    box-shadow: 6px 6px 0px #333;
+}
+
+.diary-date {
+    font-size: 0.85rem;
+    color: #666;
+    display: block;
+    margin-bottom: 8px;
+}
+
+.diary-card-sharp h4 {
+    font-size: 1.1rem;
+    margin-bottom: 10px;
+    color: #222;
+    /* タイトルが長い場合の対策 */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* 本文はJavaScriptで文字数制限するため、折り返しを許可する */
+.diary-card-sharp p {
+    font-size: 0.9rem;
+    color: #444;
+    margin: 0;
+    white-space: normal; 
+    word-break: break-all;
+}
 
 /* ==========================================
    Asymmetric Cards (突き抜け・丸みカード)
@@ -379,6 +444,50 @@ body {
 .fade-up.show {
     opacity: 1;
     transform: translateY(0);
+}
+
+/* --- 日記一覧のページネーション専用スタイル --- */
+.pagination-container-custom {
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    gap: 12px !important;
+    margin-top: 50px !important;
+}
+
+.pagination-btn-custom {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-width: 42px !important;
+    height: 42px !important;
+    padding: 0 14px !important;
+    border: 2px solid var(--border-color, #fce4ec) !important;
+    background-color: var(--card-bg, #ffffff) !important;
+    color: var(--text-color, #594a4e) !important;
+    border-radius: 50% !important;
+    font-weight: 700 !important;
+    font-family: 'Zen Maru Gothic', sans-serif !important;
+    font-size: 0.95rem !important;
+    cursor: pointer !important;
+    box-shadow: 0 4px 10px rgba(255, 143, 171, 0.08) !important;
+    transition: all 0.3s ease !important;
+    outline: none !important;
+}
+
+.pagination-btn-custom:hover {
+    border-color: var(--accent-color, #ff8fab) !important;
+    color: var(--accent-color, #ff8fab) !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 15px rgba(255, 143, 171, 0.2) !important;
+}
+
+.pagination-btn-custom.active {
+    background-color: var(--accent-color, #ff8fab) !important;
+    border-color: var(--accent-color, #ff8fab) !important;
+    color: #ffffff !important;
+    box-shadow: 0 6px 15px rgba(255, 143, 171, 0.3) !important;
+    transform: translateY(-2px) !important;
 }
 
 /* ==========================================

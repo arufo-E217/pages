@@ -148,12 +148,13 @@ import '../../styles/style.css';
 
                 <div class="form-group">
                     <label for="date">日時</label>
-                    <input type="datetime-local" id="date" required>
+                    <input type="text" id="date" required placeholder="例: 2026-07-23 24:15">
+                    <span style="font-size: 0.8rem; color: #888;">※深夜帯は24時以降の表記（24:15など）になります</span>
                 </div>
 
                 <div class="form-group">
                     <label for="filename">ファイル名（半角英数字）</label>
-                    <input type="text" id="filename" required placeholder="例：20260723221500">
+                    <input type="text" id="filename" required placeholder="例：20260723241500">
                     <span style="font-size: 0.8rem; color: #888;">※自動で数字のみの日時が入ります（.mdは自動でつきます）</span>
                 </div>
 
@@ -191,24 +192,39 @@ import '../../styles/style.css';
         if (savedOwner) (document.getElementById('ghOwner') as HTMLInputElement).value = savedOwner;
         if (savedRepo) (document.getElementById('ghRepo') as HTMLInputElement).value = savedRepo;
 
-        // 端末のローカル時間を正確に取得してフォームの初期値にセットする関数
+        // 端末のローカル時間を正確に取得してフォームの初期値にセットする関数（4時切り替え対応）
         const setLocalDateTimeValues = () => {
             const now = new Date();
-            const pad = (n: number) => String(n).padStart(2, '0');
-            
-            const year = now.getFullYear();
-            const month = pad(now.getMonth() + 1);
-            const day = pad(now.getDate());
-            const hours = pad(now.getHours());
-            const minutes = pad(now.getMinutes());
-            const seconds = pad(now.getSeconds());
+            const currentHour = now.getHours();
+            const currentMinute = now.getMinutes();
+            const currentSecond = now.getSeconds();
 
-            const datetimeLocalVal = `${year}-${month}-${day}T${hours}:${minutes}`;
-            const dateInput = document.getElementById('date') as HTMLInputElement;
-            if (dateInput && !dateInput.value) {
-                dateInput.value = datetimeLocalVal;
+            let targetDate = new Date(now.getTime());
+            let displayHours = currentHour;
+
+            // 0:00 〜 3:59 の間は前日扱いとし、時間を +24 する（24:00 〜 27:59 表記にするため）
+            if (currentHour < 4) {
+                targetDate.setDate(targetDate.getDate() - 1);
+                displayHours = currentHour + 24;
             }
 
+            const pad = (n: number) => String(n).padStart(2, '0');
+            
+            const year = targetDate.getFullYear();
+            const month = pad(targetDate.getMonth() + 1);
+            const day = pad(targetDate.getDate());
+            const hours = pad(displayHours);
+            const minutes = pad(currentMinute);
+            const seconds = pad(currentSecond);
+
+            // 日時入力欄（例: 2026-07-23 24:15）
+            const datetimeVal = `${year}-${month}-${day} ${hours}:${minutes}`;
+            const dateInput = document.getElementById('date') as HTMLInputElement;
+            if (dateInput && !dateInput.value) {
+                dateInput.value = datetimeVal;
+            }
+
+            // ファイル名（例: 20260723241529）
             const filenameVal = `${year}${month}${day}${hours}${minutes}${seconds}`;
             const filenameInput = document.getElementById('filename') as HTMLInputElement;
             if (filenameInput && !filenameInput.value) {
@@ -238,8 +254,15 @@ import '../../styles/style.css';
 
             try {
                 const now = new Date();
+                const currentHour = now.getHours();
+                let targetDate = new Date(now.getTime());
+                let displayHours = currentHour;
+                if (currentHour < 4) {
+                    targetDate.setDate(targetDate.getDate() - 1);
+                    displayHours = currentHour + 24;
+                }
                 const pad = (n: number) => String(n).padStart(2, '0');
-                const timestamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+                const timestamp = `${targetDate.getFullYear()}${pad(targetDate.getMonth() + 1)}${pad(targetDate.getDate())}${pad(displayHours)}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
                 const safeImgName = `${timestamp}_${file.name.replace(/[^a-zA-Z0-9_.-]/g, '_')}`;
                 const imagePath = `public/images/diaries/${safeImgName}`;
 
@@ -341,8 +364,15 @@ ${content}
                     resultMsg.textContent = '🎉 成功！GitHubへのコミットが完了しました。数分後にサイトが自動更新されます！';
                     
                     const now = new Date();
+                    const currentHour = now.getHours();
+                    let targetDate = new Date(now.getTime());
+                    let displayHours = currentHour;
+                    if (currentHour < 4) {
+                        targetDate.setDate(targetDate.getDate() - 1);
+                        displayHours = currentHour + 24;
+                    }
                     const pad = (n: number) => String(n).padStart(2, '0');
-                    const newFilenameVal = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+                    const newFilenameVal = `${targetDate.getFullYear()}${pad(targetDate.getMonth() + 1)}${pad(targetDate.getDate())}${pad(displayHours)}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
                     
                     (document.getElementById('title') as HTMLInputElement).value = '';
                     (document.getElementById('filename') as HTMLInputElement).value = newFilenameVal;

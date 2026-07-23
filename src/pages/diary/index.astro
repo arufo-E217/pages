@@ -5,17 +5,69 @@ import Footer from '../../components/Footer.astro';
 
 import '../../styles/style.css';
 
-// diaries/ フォルダの中身を取得し、日付の新しい順に並び替える
+// diaries/ フォルダの中身を取得
 const allDiaries = await getCollection('diaries');
-allDiaries.sort((a, b) => new Date(b.data.date).getTime() - new Date(a.data.date).getTime());
 
-// 各記事をレンダリングするための準備
-const diariesWithContent = await Promise.all(
-    allDiaries.map(async (post) => {
-        const { Content } = await render(post);
-        return { ...post, Content };
-    })
-);
+// 24時以降（例: 25:34）の時間を考慮して正しくソートするための関数
+function parseCustomDate(dateStr: string) {
+    if (!dateStr) return 0;
+    
+    // "YYYY-MM-DD HH:mm" または "YYYY-MM-DDTHH:mm" に対応
+    const normalized = dateStr.replace('T', ' ');
+    const [datePart, timePart] = normalized.split(' ');
+    
+    if (!datePart || !timePart) {
+        return new Date(dateStr).getTime() || 0;
+    }
+
+    const [year, month, day] = datePart.split('-').map(Number);
+    const [hour, minute, second = 0] = timePart.split(':').map(Number);
+
+    // 時間が24時以上の場合は、日付を前日に固定しつつ、超過分の時間をミリ秒として正しく加算する
+    const baseDate = new Date(year, month - 1, day);
+    if (hour >= 24) {
+        baseDate.setHours(hour, minute, second);
+    } else {
+        baseDate.setHours(hour, minute, second);
+    }
+
+    return baseDate.getTime();
+}
+
+// 新しい順（降順）に並び替え
+allDiaries.sort((a, b) => {
+    const timeA = parseCustomDate(String(a.data.date));
+    const timeB = parseCustomDate(String(b.data.date));
+    return timeB - timeA;
+});
+
+// 各記事のプレビュー用テキストを生成
+const diariesWithPreview = allDiaries.map((post) => {
+    let rawBody = post.body || '';
+    
+    rawBody = rawBody
+        .replace(/!\[.*?\]\(.*?\)/g, '[画像]')
+        .replace(/<img[\s\S]*?>/gi, '[画像]');
+    
+    let plainText = rawBody
+        .replace(/<br\s*\/?>/gi, '\n')
+        .replace(/<\/p>/gi, '\n')
+        .replace(/<\/div>/gi, '\n')
+        .replace(/<.*?>/g, '')
+        .replace(/[#*`_>-]/g, '')
+        .trim();
+
+    const dateStr = post.data.date ? String(post.data.date) : '';
+    const yearMonth = dateStr.substring(0, 7);
+
+    return {
+        ...post,
+        plainText,
+        yearMonth,
+    };
+});
+
+const availableMonths = Array.from(new Set(diariesWithPreview.map(p => p.yearMonth))).filter(Boolean);
 ---
 
 <!DOCTYPE html>
@@ -26,33 +78,76 @@ const diariesWithContent = await Promise.all(
     <title>日記一覧 - あるふぉーとのゲーム置き場</title>
     <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
-        /* 3行に制限して高さを揃えるための専用スタイル */
+        /* 検索・フィルターエリアのスタイル */
+        .filter-controls {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+        .search-input, .month-select {
+            padding: 12px 20px;
+            border: 2px solid var(--border-color);
+            border-radius: 30px;
+            font-size: 0.95rem;
+            outline: none;
+            font-family: 'Zen Maru Gothic', sans-serif;
+            background-color: var(--card-bg);
+            color: var(--text-color);
+            transition: var(--transition);
+        }
+        .search-input {
+            width: 100%;
+            max-width: 350px;
+        }
+        .month-select {
+            cursor: pointer;
+        }
+        .search-input:focus, .month-select:focus {
+            border-color: var(--accent-color);
+            box-shadow: 0 0 8px rgba(255, 143, 171, 0.4);
+        }
+
+        /* 3行固定＆カードサイズを揃えるためのスタイル */
         .diary-preview-box {
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            min-height: 5.5em; /* 3行分＋αの最低高さを確保してカードサイズを一定にする */
+            min-height: 4.5em; 
         }
         .markdown-body-preview-clamp {
             display: -webkit-box;
-            -webkit-line-clamp: 3; /* 最大3行まで表示 */
+            -webkit-line-clamp: 3;
             -webkit-box-orient: vertical;
             overflow: hidden;
             text-overflow: ellipsis;
-            font-size: 0.9rem;
-            color: #666;
+            font-size: 0.95rem;
+            color: #7d6b70;
             margin: 0;
+            white-space: pre-line;
+            line-height: 1.5;
         }
         .read-more-link {
             display: inline-block;
             margin-top: 8px;
             font-size: 0.85rem;
             font-weight: 700;
-            color: var(--accent-color, #ff8fab);
+            color: var(--accent-color);
             text-decoration: none;
+            transition: var(--transition);
         }
         .read-more-link:hover {
             text-decoration: underline;
+            color: var(--accent-hover);
+        }
+
+        /* 日記がない場合のスタイル */
+        .no-diaries {
+            text-align: center;
+            padding: 60px 20px;
+            color: #9c8b91;
+            font-size: 1.1rem;
         }
     </style>
 </head>
@@ -67,47 +162,147 @@ const diariesWithContent = await Promise.all(
                 <p class="welcome-msg" style="opacity: 1; transform: translateY(0);">日記一覧</p>
             </div>
 
-            <!-- 日記カードのリスト -->
-            <div class="asymmetric-cards-wrapper">
-                {
-                    diariesWithContent.map((post) => {
-                        const { Content } = post; 
+            { diariesWithPreview.length > 0 ? (
+                <>
+                    {/* 検索バー ＆ 日時（年月）絞り込みフィルター */}
+                    <div class="filter-controls">
+                        <input type="text" id="searchInput" class="search-input" placeholder="タイトルや本文で検索..." />
+                        <select id="monthSelect" class="month-select">
+                            <option value="">すべての期間</option>
+                            {availableMonths.map((ym) => (
+                                <option value={ym}>{ym.replace('-', '年')}月</option>
+                            ))}
+                        </select>
+                    </div>
 
-                        return (
-                            <div class="asymmetric-card card-left-round" style="margin: 0 auto; width: 100%; border-radius: 30px;">
-                                <div class="card-inner-content">
-                                    <div class="card-icon">📖</div>
-                                    <div class="card-text" style="width: 100%;">
-                                        <p style="font-size: 0.85rem; color: #ff8fab; font-weight: 700; margin-bottom: 5px;">
-                                            {/* T をスペースに置き換えて「YYYY-MM-DD HH:mm」のように表示する */}
-                                            {post.data.date ? String(post.data.date).replace('T', ' ') : ''}
-                                        </p>
-                                        <h3 style="margin-bottom: 8px;">
-                                            <a href={`/diary/${post.id}`} style="text-decoration: none; color: var(--accent-color);">
-                                                {post.data.title || 'タイトルなし'}
-                                            </a>
-                                        </h3>
+                    {/* 日記カードのリスト */}
+                    <div class="asymmetric-cards-wrapper" id="cardsContainer">
+                        {
+                            diariesWithPreview.map((post) => (
+                                <div 
+                                    class="asymmetric-card card-left-round diary-card-item" 
+                                    style="margin: 0 auto; width: 100%; border-radius: 30px;"
+                                    data-title={post.data.title || ''}
+                                    data-content={post.plainText}
+                                    data-ym={post.yearMonth}
+                                >
+                                    <div class="card-inner-content">
+                                        <div class="card-icon">📖</div>
+                                        <div class="card-text" style="width: 100%;">
+                                            {/* 表示はそのまま（25時など）の文字列を出す */}
+                                            <p style="font-size: 0.85rem; color: var(--accent-color); font-weight: 700; margin-bottom: 5px;">
+                                                {post.data.date ? String(post.data.date).replace('T', ' ') : ''}
+                                            </p>
+                                            <h3 style="margin-bottom: 8px;">
+                                                <a href={`${import.meta.env.BASE_URL}/diary/${post.id}`} style="text-decoration: none; color: var(--accent-color);">
+                                                    {post.data.title || 'タイトルなし'}
+                                                </a>
+                                            </h3>
 
-                                        {/* 3行固定＆続きを見るリンクエリア */}
-                                        <div class="diary-preview-box">
-                                            <div class="markdown-body-preview-clamp">
-                                                <Content /> 
+                                            {/* 3行固定＆続きを見るリンクエリア */}
+                                            <div class="diary-preview-box">
+                                                <div class="markdown-body-preview-clamp">
+                                                    {post.plainText}
+                                                </div>
+                                                <a href={`${import.meta.env.BASE_URL}/diary/${post.id}`} class="read-more-link">
+                                                    → 続きを見る
+                                                </a>
                                             </div>
-                                            <a href={`${import.meta.env.BASE_URL}/diary/${post.id}`} class="read-more-link">
-                                                → 続きを見る
-                                            </a>
-                                        </div>
 
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        )
-                    })
-                }
-            </div>
+                            ))
+                        }
+                    </div>
+
+                    {/* ページネーション用コントロール */}
+                    <div class="pagination-container-custom" id="paginationContainer"></div>
+                </>
+            ) : (
+                <div class="no-diaries">
+                    <p>まだ日記が投稿されていません。<br>最初の思い出を書いてみよう！📖✨</p>
+                </div>
+            )}
         </div>
     </main>
 
     <Footer />
+
+    <script>
+        const searchInput = document.getElementById('searchInput') as HTMLInputElement;
+        const monthSelect = document.getElementById('monthSelect') as HTMLSelectElement;
+        const cardsContainer = document.getElementById('cardsContainer');
+        const paginationContainer = document.getElementById('paginationContainer');
+
+        if (cardsContainer) {
+            const allCards = Array.from(cardsContainer.getElementsByClassName('diary-card-item')) as HTMLElement[];
+            const ITEMS_PER_PAGE = 5; 
+            let currentPage = 1;
+            let filteredCards = [...allCards];
+
+            function updateDisplay() {
+                const totalPages = Math.ceil(filteredCards.length / ITEMS_PER_PAGE) || 1;
+                if (currentPage > totalPages) currentPage = totalPages;
+                if (currentPage < 1) currentPage = 1;
+
+                const start = (currentPage - 1) * ITEMS_PER_PAGE;
+                const end = start + ITEMS_PER_PAGE;
+
+                allCards.forEach(card => card.style.display = 'none');
+                filteredCards.slice(start, end).forEach(card => {
+                    card.style.display = 'block';
+                });
+
+                if (paginationContainer) {
+                    paginationContainer.innerHTML = '';
+                    if (totalPages > 1) {
+                        for (let i = 1; i <= totalPages; i++) {
+                            const btn = document.createElement('button');
+                            btn.className = 'pagination-btn-custom';
+                            if (i === currentPage) {
+                                btn.classList.add('active');
+                            }
+                            btn.textContent = String(i);
+                            btn.addEventListener('click', () => {
+                                currentPage = i;
+                                updateDisplay();
+                                window.scrollTo({ top: 300, behavior: 'smooth' });
+                            });
+                            paginationContainer.appendChild(btn);
+                        }
+                    }
+                }
+            }
+
+            function filterCards() {
+                const query = searchInput ? searchInput.value.toLowerCase().trim() : '';
+                const selectedMonth = monthSelect ? monthSelect.value : '';
+
+                filteredCards = allCards.filter(card => {
+                    const title = card.getAttribute('data-title')?.toLowerCase() || '';
+                    const content = card.getAttribute('data-content')?.toLowerCase() || '';
+                    const ym = card.getAttribute('data-ym') || '';
+
+                    const matchesQuery = title.includes(query) || content.includes(query);
+                    const matchesMonth = !selectedMonth || ym === selectedMonth;
+
+                    return matchesQuery && matchesMonth;
+                });
+
+                currentPage = 1;
+                updateDisplay();
+            }
+
+            if (searchInput) {
+                searchInput.addEventListener('input', filterCards);
+            }
+            if (monthSelect) {
+                monthSelect.addEventListener('change', filterCards);
+            }
+
+            updateDisplay();
+        }
+    </script>
 </body>
 </html>

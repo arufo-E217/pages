@@ -5,11 +5,46 @@ import Footer from '../components/Footer.astro';
 
 import '../styles/style.css';
 
-// 2. 画像も個別にインポートする
 import slide1 from '../assets/images/slide1.png';
 import slide2 from '../assets/images/slide2.png';
 import slide3 from '../assets/images/slide3.png';
 import slide4 from '../assets/images/slide4.png';
+
+const allDiaries = await getCollection('diaries');
+const recentDiaries = allDiaries
+  .sort((a, b) => new Date(b.data.date).getTime() - new Date(a.data.date).getTime())
+  .slice(0, 5);
+
+// 文字数制限をつけて「...」にする関数
+function createExcerpt(body: string = '', maxLength: number = 30) {
+  if (!body) return '';
+  const cleaned = body
+    .replace(/<img[^>]*>/gi, '[画像]')
+    .replace(/<br\s*[\/]?>/gi, '')
+    .replace(/<[^>]*>?/gm, '')
+    .replace(/[\r\n]+/g, '')
+    .trim();
+  
+  if (cleaned.length > maxLength) {
+    return cleaned.substring(0, maxLength) + '...';
+  }
+  return cleaned;
+}
+
+// 日付文字列から「YYYY/MM/DD HH:mm」形式の文字列を作る関数
+function formatDateTime(dateString: string) {
+  if (!dateString) return '';
+  const d = new Date(dateString);
+  if (isNaN(d.getTime())) return dateString; // パースできない場合はそのまま返す
+
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  const hours = String(d.getHours()).padStart(2, '0');
+  const minutes = String(d.getMinutes()).padStart(2, '0');
+
+  return `${year}/${month}/${day} ${hours}:${minutes}`;
+}
 ---
 
 <!DOCTYPE html>
@@ -30,7 +65,6 @@ import slide4 from '../assets/images/slide4.png';
         <!-- ヒーローセクション（スライドショー） -->
         <section class="heroSection">
             <div class="hero-slideshow" id="heroSlideshow">
-                <!-- 3. インポートした変数を style 属性に埋め込む -->
                 <div class="hero-slide active" style={`background-image: url('${slide1.src}');`}></div>
                 <div class="hero-slide" style={`background-image: url('${slide2.src}');`}></div>
                 <div class="hero-slide" style={`background-image: url('${slide3.src}');`}></div>
@@ -96,6 +130,24 @@ import slide4 from '../assets/images/slide4.png';
                 </div>
             </div>
 
+            <!-- 新着の日記セクション（Achievementsの下） -->
+            <div class="recent-diaries-section fade-up">
+                <h3>Recent Diaries</h3>
+                <div class="diary-cards-container">
+                    {recentDiaries.map((post) => (
+                        <a href={`${import.meta.env.BASE_URL}/diary/${post.id}`} class="diary-card-sharp">
+                            <div class="diary-card-content">
+                                <!-- 日付と時刻を表示 -->
+                                <span class="diary-date">{formatDateTime(post.data.date)}</span>
+                                <h4>{post.data.title}</h4>
+                                <p>{createExcerpt(post.body, 30)}</p>
+                            </div>
+                        </a>
+                    ))}
+                </div>
+                <p><a href={`${import.meta.env.BASE_URL}/diary`}>→ 日記一覧</a></p>
+            </div>
+
             <div class="link-section fade-up">
                 <h3>Links & Antenna</h3>
                 <div class="social-links">
@@ -111,17 +163,12 @@ import slide4 from '../assets/images/slide4.png';
     <Footer />
 
     <!-- スクリプトの読み込み -->
-<!-- スクリプトの読み込み -->
     <script>
-        // ==========================================
-        // Hero Slideshow & Scroll Animations
-        // ==========================================
         document.addEventListener('DOMContentLoaded', () => {
-            // 1. ヒーローセクションのスライドショー
             const slides = document.querySelectorAll('.hero-slide');
             if (slides.length > 0) {
                 let currentSlide = 0;
-                const slideInterval = 5000; // 5秒ごとに切り替え
+                const slideInterval = 5000;
 
                 setInterval(() => {
                     slides[currentSlide].classList.remove('active');
@@ -130,12 +177,11 @@ import slide4 from '../assets/images/slide4.png';
                 }, slideInterval);
             }
 
-            // 2. スクロール監視によるゆったりアニメーション (Intersection Observer)
             const targetElements = document.querySelectorAll('.line-reveal-trigger, .fade-slide-left, .fade-slide-right, .fade-up');
 
             const observerOptions = {
                 root: null,
-                rootMargin: '0px 0px -20% 0px', // 画面下に20%入ってきたら発火
+                rootMargin: '0px 0px -20% 0px',
                 threshold: 0.15
             };
 
@@ -152,7 +198,5 @@ import slide4 from '../assets/images/slide4.png';
             });
         });
     </script>
-</body>
-</html>
 </body>
 </html>
