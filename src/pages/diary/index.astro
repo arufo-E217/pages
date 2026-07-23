@@ -45,16 +45,19 @@ allDiaries.sort((a, b) => {
 const diariesWithPreview = allDiaries.map((post) => {
     let rawBody = post.body || '';
     
+    // 画像タグの置き換え
     rawBody = rawBody
         .replace(/!\[.*?\]\(.*?\)/g, '[画像]')
         .replace(/<img[\s\S]*?>/gi, '[画像]');
     
+    // HTMLタグや余分な改行の整形（連続する空行を圧縮する）
     let plainText = rawBody
         .replace(/<br\s*\/?>/gi, '\n')
         .replace(/<\/p>/gi, '\n')
         .replace(/<\/div>/gi, '\n')
         .replace(/<.*?>/g, '')
         .replace(/[#*`_>-]/g, '')
+        .replace(/\n\s*\n/g, '\n') // 連続する空行を1行にまとめる
         .trim();
 
     const dateStr = post.data.date ? String(post.data.date) : '';
@@ -164,15 +167,15 @@ const availableMonths = Array.from(new Set(diariesWithPreview.map(p => p.yearMon
 
             { diariesWithPreview.length > 0 ? (
                 <>
-                    {/* 検索バー ＆ 日時（年月）絞り込みフィルター */}
+                    {/* 検索バー ＆ 日時（年月）絞り込みフィルター（月セレクトを左、検索窓を右に配置） */}
                     <div class="filter-controls">
-                        <input type="text" id="searchInput" class="search-input" placeholder="タイトルや本文で検索..." />
                         <select id="monthSelect" class="month-select">
                             <option value="">すべての期間</option>
                             {availableMonths.map((ym) => (
                                 <option value={ym}>{ym.replace('-', '年')}月</option>
                             ))}
                         </select>
+                        <input type="text" id="searchInput" class="search-input" placeholder="タイトルや本文で検索..." />
                     </div>
 
                     {/* 日記カードのリスト */}

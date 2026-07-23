@@ -31,8 +31,24 @@ body {
 }
 
 /* ==========================================
-   Header
-   ========================================== */
+Header
+========================================== */
+
+/* ロゴやヘッダーのリンク要素に適用するスタイル */
+.header-logo,
+header a {
+    color: inherit;            /* 周りの文字色を継承させる（勝手に変色させない） */
+    text-decoration: none;     /* 下線を消す */
+}
+
+/* ホバー時や訪問後（visited）も含めてすべて同じ色に固定したい場合 */
+header a:visited,
+header a:hover,
+header a:active {
+    color: inherit;            /* 訪問後も色を変えない */
+    text-decoration: none;     /* ホバー時にも下線を出さない */
+}
+
 .headerNavigationMenu {
     position: fixed;
     top: 0;
@@ -180,6 +196,20 @@ body {
     padding: 100px 0 120px 0;
     overflow: hidden;
 }
+
+.middle-page-container a {
+    color: inherit;            /* 周りの文字色を継承させる（勝手に変色させない） */
+    text-decoration: none;     /* 下線を消す */
+}
+
+/* ホバー時や訪問後（visited）も含めてすべて同じ色に固定したい場合 */
+.middle-page-container a:visited,
+.middle-page-container a:hover,
+.middle-page-container a:active {
+    color: inherit;            /* 訪問後も色を変えない */
+    text-decoration: none;     /* ホバー時にも下線を出さない */
+}
+
 
 /* ==========================================
    Line Reveal & Text Animation

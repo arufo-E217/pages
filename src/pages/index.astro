@@ -11,8 +11,31 @@ import slide3 from '../assets/images/slide3.png';
 import slide4 from '../assets/images/slide4.png';
 
 const allDiaries = await getCollection('diaries');
+
+// 24時以降（例: 25:34）の時間を考慮して正しくソートするための関数
+function parseCustomDate(dateStr: string) {
+    if (!dateStr) return 0;
+    
+    // "YYYY-MM-DD HH:mm" または "YYYY-MM-DDTHH:mm" に対応
+    const normalized = dateStr.replace('T', ' ');
+    const [datePart, timePart] = normalized.split(' ');
+    
+    if (!datePart || !timePart) {
+        return new Date(dateStr).getTime() || 0;
+    }
+
+    const [year, month, day] = datePart.split('-').map(Number);
+    const [hour, minute, second = 0] = timePart.split(':').map(Number);
+
+    const baseDate = new Date(year, month - 1, day);
+    baseDate.setHours(hour, minute, second);
+
+    return baseDate.getTime();
+}
+
+// 新しい順（降順）に並び替え
 const recentDiaries = allDiaries
-  .sort((a, b) => new Date(b.data.date).getTime() - new Date(a.data.date).getTime())
+  .sort((a, b) => parseCustomDate(String(b.data.date)) - parseCustomDate(String(a.data.date)))
   .slice(0, 5);
 
 // 文字数制限をつけて「...」にする関数
@@ -31,19 +54,33 @@ function createExcerpt(body: string = '', maxLength: number = 30) {
   return cleaned;
 }
 
-// 日付文字列から「YYYY/MM/DD HH:mm」形式の文字列を作る関数
+// 24時以降（25:30など）の時刻も崩さずに「YYYY/MM/DD HH:mm」形式にする関数
 function formatDateTime(dateString: string) {
-  if (!dateString) return '';
-  const d = new Date(dateString);
-  if (isNaN(d.getTime())) return dateString; // パースできない場合はそのまま返す
+    if (!dateString) return '';
+    const normalized = dateString.replace('T', ' ');
+    const [datePart, timePart] = normalized.split(' ');
+    
+    if (!datePart || !timePart) {
+        // パースできない通常の形式ならそのままDateでフォールバック
+        const d = new Date(dateString);
+        if (isNaN(d.getTime())) return dateString;
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        const hours = String(d.getHours()).padStart(2, '0');
+        const minutes = String(d.getMinutes()).padStart(2, '0');
+        return `${year}/${month}/${day} ${hours}:${minutes}`;
+    }
 
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  const hours = String(d.getHours()).padStart(2, '0');
-  const minutes = String(d.getMinutes()).padStart(2, '0');
+    const [year, month, day] = datePart.split('-');
+    const [hour, minute] = timePart.split(':');
 
-  return `${year}/${month}/${day} ${hours}:${minutes}`;
+    if (!year || !month || !day || !hour || !minute) {
+        return dateString;
+    }
+
+    // スラッシュ区切り＆24時以降の時間をそのまま保持して結合
+    return `${year}/${month}/${day} ${hour}:${minute}`;
 }
 ---
 
@@ -132,20 +169,19 @@ function formatDateTime(dateString: string) {
 
             <!-- 新着の日記セクション（Achievementsの下） -->
             <div class="recent-diaries-section fade-up">
-                <h3>Recent Diaries</h3>
+                <h3>Recent Diaries / <a href={`${import.meta.env.BASE_URL}/diary`} style="color: var(--accent-color); text-decoration: underline;">→ View All</a></h3>
                 <div class="diary-cards-container">
                     {recentDiaries.map((post) => (
                         <a href={`${import.meta.env.BASE_URL}/diary/${post.id}`} class="diary-card-sharp">
                             <div class="diary-card-content">
                                 <!-- 日付と時刻を表示 -->
-                                <span class="diary-date">{formatDateTime(post.data.date)}</span>
+                                <span class="diary-date">{formatDateTime(String(post.data.date))}</span>
                                 <h4>{post.data.title}</h4>
                                 <p>{createExcerpt(post.body, 30)}</p>
                             </div>
                         </a>
                     ))}
                 </div>
-                <p><a href={`${import.meta.env.BASE_URL}/diary`}>→ 日記一覧</a></p>
             </div>
 
             <div class="link-section fade-up">
@@ -181,7 +217,7 @@ function formatDateTime(dateString: string) {
 
             const observerOptions = {
                 root: null,
-                rootMargin: '0px 0px -20% 0px',
+                rootMargin: '0px 0px 10% 0px',
                 threshold: 0.15
             };
 
