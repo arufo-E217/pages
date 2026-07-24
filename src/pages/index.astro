@@ -12,11 +12,43 @@ import slide4 from '../assets/images/slide4.png';
 
 const allDiaries = await getCollection('diaries');
 
+// --- サーバー側で安全にカウンターAPIを叩き、累計と日計を取得する処理 ---
+let visitorCount = 0;
+let todayCount = 0;
+
+try {
+    const response = await fetch('https://api.counterapi.dev/v2/s-team-43-4815/arufositesvisiter/up', {
+        headers: {
+            'Authorization': `Bearer ${import.meta.env.COUNTER_API_KEY}`
+        }
+    });
+    const result = await response.json();
+    
+    // 累計（up_count）を取得
+    visitorCount = result.data?.up_count ?? 0;
+
+    // もし /up のレスポンスに stats が含まれている場合はそこから今日の日付の数値を取得
+    // （含まれていない場合の保険として /stats も併用できるようにしています）
+    if (result.data?.stats?.today?.up !== undefined) {
+        todayCount = result.data.stats.today.up;
+    } else {
+        // 万が一 /up 側に stats がない場合は別途 /stats を叩きに行く安全設計
+        const statsResponse = await fetch('https://api.counterapi.dev/v2/s-team-43-4815/arufositesvisiter/stats', {
+            headers: {
+                'Authorization': `Bearer ${import.meta.env.COUNTER_API_KEY}`
+            }
+        });
+        const statsResult = await statsResponse.json();
+        todayCount = statsResult.data?.stats?.today?.up ?? 0;
+    }
+} catch (error) {
+    console.error('カウンターの取得に失敗しました:', error);
+}
+
 // 24時以降（例: 25:34）の時間を考慮して正しくソートするための関数
 function parseCustomDate(dateStr: string) {
     if (!dateStr) return 0;
     
-    // "YYYY-MM-DD HH:mm" または "YYYY-MM-DDTHH:mm" に対応
     const normalized = dateStr.replace('T', ' ');
     const [datePart, timePart] = normalized.split(' ');
     
@@ -61,7 +93,6 @@ function formatDateTime(dateString: string) {
     const [datePart, timePart] = normalized.split(' ');
     
     if (!datePart || !timePart) {
-        // パースできない通常の形式ならそのままDateでフォールバック
         const d = new Date(dateString);
         if (isNaN(d.getTime())) return dateString;
         const year = d.getFullYear();
@@ -79,11 +110,9 @@ function formatDateTime(dateString: string) {
         return dateString;
     }
 
-    // スラッシュ区切り＆24時以降の時間をそのまま保持して結合
     return `${year}/${month}/${day} ${hour}:${minute}`;
 }
 ---
-
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -92,6 +121,15 @@ function formatDateTime(dateString: string) {
     <title>あるふぉーとのゲーム置き場 - Top</title>
     <!-- Google Fonts: Zen Maru Gothic -->
     <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;500;700&display=swap" rel="stylesheet">
+
+    <!-- Google Analytics (GA4) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-P6PC95YB6D"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-P6PC95YB6D');
+    </script>
 </head>
 <body>
 
@@ -121,6 +159,12 @@ function formatDateTime(dateString: string) {
         <!-- 中ページ -->
         <div class="middle-page-container">
             
+            <!-- アクセスカウンター（累計と日計を表示） -->
+            <div class="visitor-counter-wrapper" style="text-align: right; margin-bottom: 15px; font-size: 0.9rem; color: var(--text-color, #666);">
+                <p>アクセスカウンター</p>
+                <span>累計: <strong>{visitorCount.toLocaleString()}</strong>回<br>今日: <strong>{todayCount.toLocaleString()}</strong>回</span>
+            </div>
+
             <div class="welcome-msg-wrapper line-reveal-trigger">
                 <p class="welcome-msg">ようこそおいでなすった ゆっくりしていくがよい！</p>
             </div>
@@ -167,14 +211,13 @@ function formatDateTime(dateString: string) {
                 </div>
             </div>
 
-            <!-- 新着の日記セクション（Achievementsの下） -->
+            <!-- 新着の日記セクション -->
             <div class="recent-diaries-section fade-up">
                 <h3>Recent Diaries / <a href={`${import.meta.env.BASE_URL}/diary`} style="color: var(--accent-color); text-decoration: underline;">→ View All</a></h3>
                 <div class="diary-cards-container">
                     {recentDiaries.map((post) => (
                         <a href={`${import.meta.env.BASE_URL}/diary/${post.id}`} class="diary-card-sharp">
                             <div class="diary-card-content">
-                                <!-- 日付と時刻を表示 -->
                                 <span class="diary-date">{formatDateTime(String(post.data.date))}</span>
                                 <h4>{post.data.title}</h4>
                                 <p>{createExcerpt(post.body, 30)}</p>
@@ -201,6 +244,7 @@ function formatDateTime(dateString: string) {
     <!-- スクリプトの読み込み -->
     <script>
         document.addEventListener('DOMContentLoaded', () => {
+            // 2. ヒーローセクションのスライドショー
             const slides = document.querySelectorAll('.hero-slide');
             if (slides.length > 0) {
                 let currentSlide = 0;
@@ -213,6 +257,7 @@ function formatDateTime(dateString: string) {
                 }, slideInterval);
             }
 
+            // 3. スクロールアニメーション（IntersectionObserver）
             const targetElements = document.querySelectorAll('.line-reveal-trigger, .fade-slide-left, .fade-slide-right, .fade-up');
 
             const observerOptions = {
@@ -221,7 +266,7 @@ function formatDateTime(dateString: string) {
                 threshold: 0.15
             };
 
-            const observer = new IntersectionObserver((entries, observer) => {
+            const observer = new IntersectionObserver((entries) => {
                 entries.forEach(entry => {
                     if (entry.isIntersecting) {
                         entry.target.classList.add('show');
