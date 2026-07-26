@@ -1,7 +1,6 @@
 ---
 import { getCollection, render } from 'astro:content';
-import Header from '../components/Header.astro';
-import Footer from '../components/Footer.astro';
+import Layout from '../layouts/layout.astro';
 
 import '../styles/style.css';
 
@@ -11,39 +10,6 @@ import slide3 from '../assets/images/slide3.png';
 import slide4 from '../assets/images/slide4.png';
 
 const allDiaries = await getCollection('diaries');
-
-// --- サーバー側で安全にカウンターAPIを叩き、累計と日計を取得する処理 ---
-let visitorCount = 0;
-let todayCount = 0;
-
-try {
-    const response = await fetch('https://api.counterapi.dev/v2/s-team-43-4815/arufositesvisiter/up', {
-        headers: {
-            'Authorization': `Bearer ${import.meta.env.COUNTER_API_KEY}`
-        }
-    });
-    const result = await response.json();
-    
-    // 累計（up_count）を取得
-    visitorCount = result.data?.up_count ?? 0;
-
-    // もし /up のレスポンスに stats が含まれている場合はそこから今日の日付の数値を取得
-    // （含まれていない場合の保険として /stats も併用できるようにしています）
-    if (result.data?.stats?.today?.up !== undefined) {
-        todayCount = result.data.stats.today.up;
-    } else {
-        // 万が一 /up 側に stats がない場合は別途 /stats を叩きに行く安全設計
-        const statsResponse = await fetch('https://api.counterapi.dev/v2/s-team-43-4815/arufositesvisiter/stats', {
-            headers: {
-                'Authorization': `Bearer ${import.meta.env.COUNTER_API_KEY}`
-            }
-        });
-        const statsResult = await statsResponse.json();
-        todayCount = statsResult.data?.stats?.today?.up ?? 0;
-    }
-} catch (error) {
-    console.error('カウンターの取得に失敗しました:', error);
-}
 
 // 24時以降（例: 25:34）の時間を考慮して正しくソートするための関数
 function parseCustomDate(dateStr: string) {
@@ -113,29 +79,7 @@ function formatDateTime(dateString: string) {
     return `${year}/${month}/${day} ${hour}:${minute}`;
 }
 ---
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>あるふぉーとのゲーム置き場 - Top</title>
-    <!-- Google Fonts: Zen Maru Gothic -->
-    <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;500;700&display=swap" rel="stylesheet">
-
-    <!-- Google Analytics (GA4) -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-P6PC95YB6D"></script>
-    <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
-      gtag('config', 'G-P6PC95YB6D');
-    </script>
-</head>
-<body>
-
-    <!-- ヘッダー -->
-    <Header />
-
+<Layout title="Aruphy.K - Top">
     <main>
         <!-- ヒーローセクション（スライドショー） -->
         <section class="heroSection">
@@ -159,10 +103,12 @@ function formatDateTime(dateString: string) {
         <!-- 中ページ -->
         <div class="middle-page-container">
             
-            <!-- アクセスカウンター（累計と日計を表示） -->
             <div class="visitor-counter-wrapper" style="text-align: right; margin-bottom: 15px; font-size: 0.9rem; color: var(--text-color, #666);">
                 <p>アクセスカウンター</p>
-                <span>累計: <strong>{visitorCount.toLocaleString()}</strong>回<br>今日: <strong>{todayCount.toLocaleString()}</strong>回</span>
+                <span>
+                    累計: <strong id="visitor-count">読み込み中...</strong>回<br>
+                    今日: <strong id="today-count">読み込み中...</strong>回
+                </span>
             </div>
 
             <div class="welcome-msg-wrapper line-reveal-trigger">
@@ -238,12 +184,59 @@ function formatDateTime(dateString: string) {
 
         </div>
     </main>
-
-    <Footer />
-
     <!-- スクリプトの読み込み -->
     <script>
         document.addEventListener('DOMContentLoaded', () => {
+
+        // アクセスカウンター
+        const updateVisitorCounter = async () => {
+            const visitorCountElement = document.getElementById('visitor-count');
+            const todayCountElement = document.getElementById('today-count');
+
+            try {
+                const response = await fetch(
+                    'https://aruphy-counter.aruphydev.workers.dev',
+                    {
+                        method: 'GET',
+                        cache: 'no-store'
+                    }
+                );
+
+                if (!response.ok) {
+                    throw new Error(`Worker request failed: ${response.status}`);
+                }
+
+                const result = await response.json();
+
+                if (!result.success) {
+                    throw new Error(result.error || 'Counter API error');
+                }
+
+                const total = result.data?.total ?? 0;
+                const today = result.data?.today ?? 0;
+
+                if (visitorCountElement) {
+                    visitorCountElement.textContent = total.toLocaleString();
+                }
+
+                if (todayCountElement) {
+                    todayCountElement.textContent = today.toLocaleString();
+                }
+
+            } catch (error) {
+                console.error('アクセスカウンターの取得に失敗しました:', error);
+
+                if (visitorCountElement) {
+                    visitorCountElement.textContent = '取得失敗';
+                }
+
+                if (todayCountElement) {
+                    todayCountElement.textContent = '取得失敗';
+                }
+            }
+        };
+
+        updateVisitorCounter();
             // 2. ヒーローセクションのスライドショー
             const slides = document.querySelectorAll('.hero-slide');
             if (slides.length > 0) {
@@ -279,5 +272,4 @@ function formatDateTime(dateString: string) {
             });
         });
     </script>
-</body>
-</html>
+</Layout>

@@ -1,10 +1,6 @@
 ---
 import { getCollection, render } from 'astro:content';
-import Header from '../../components/Header.astro';
-import Footer from '../../components/Footer.astro';
-
-import '../../styles/style.css';
-
+import Layout from '../../layouts/layout.astro';
 // diaries/ フォルダの中身を取得
 const allDiaries = await getCollection('diaries');
 
@@ -73,98 +69,13 @@ const diariesWithPreview = allDiaries.map((post) => {
 const availableMonths = Array.from(new Set(diariesWithPreview.map(p => p.yearMonth))).filter(Boolean);
 ---
 
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>日記一覧 - あるふぉーとのゲーム置き場</title>
-    <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;500;700&display=swap" rel="stylesheet">
-    <style>
-        /* 検索・フィルターエリアのスタイル */
-        .filter-controls {
-            display: flex;
-            gap: 15px;
-            justify-content: center;
-            margin-bottom: 30px;
-            flex-wrap: wrap;
-        }
-        .search-input, .month-select {
-            padding: 12px 20px;
-            border: 2px solid var(--border-color);
-            border-radius: 30px;
-            font-size: 0.95rem;
-            outline: none;
-            font-family: 'Zen Maru Gothic', sans-serif;
-            background-color: var(--card-bg);
-            color: var(--text-color);
-            transition: var(--transition);
-        }
-        .search-input {
-            width: 100%;
-            max-width: 350px;
-        }
-        .month-select {
-            cursor: pointer;
-        }
-        .search-input:focus, .month-select:focus {
-            border-color: var(--accent-color);
-            box-shadow: 0 0 8px rgba(255, 143, 171, 0.4);
-        }
-
-        /* 3行固定＆カードサイズを揃えるためのスタイル */
-        .diary-preview-box {
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            min-height: 4.5em; 
-        }
-        .markdown-body-preview-clamp {
-            display: -webkit-box;
-            -webkit-line-clamp: 3;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            font-size: 0.95rem;
-            color: #7d6b70;
-            margin: 0;
-            white-space: pre-line;
-            line-height: 1.5;
-        }
-        .read-more-link {
-            display: inline-block;
-            margin-top: 8px;
-            font-size: 0.85rem;
-            font-weight: 700;
-            color: var(--accent-color);
-            text-decoration: none;
-            transition: var(--transition);
-        }
-        .read-more-link:hover {
-            text-decoration: underline;
-            color: var(--accent-hover);
-        }
-
-        /* 日記がない場合のスタイル */
-        .no-diaries {
-            text-align: center;
-            padding: 60px 20px;
-            color: #9c8b91;
-            font-size: 1.1rem;
-        }
-    </style>
-</head>
-<body>
-
-    <!-- ヘッダー -->
-    <Header />
-
+<Layout title="Aruphy.K - 日記一覧">
     <main>
         <div class="middle-page-container" style="padding-top: 140px;">
             <div class="welcome-msg-wrapper">
                 <p class="welcome-msg" style="opacity: 1; transform: translateY(0);">日記一覧</p>
             </div>
-
+            
             { diariesWithPreview.length > 0 ? (
                 <>
                     {/* 検索バー ＆ 日時（年月）絞り込みフィルター（月セレクトを左、検索窓を右に配置） */}
@@ -183,11 +94,11 @@ const availableMonths = Array.from(new Set(diariesWithPreview.map(p => p.yearMon
                         {
                             diariesWithPreview.map((post) => (
                                 <div 
-                                    class="asymmetric-card card-left-round diary-card-item" 
-                                    style="margin: 0 auto; width: 100%; border-radius: 30px;"
-                                    data-title={post.data.title || ''}
-                                    data-content={post.plainText}
-                                    data-ym={post.yearMonth}
+                                class="asymmetric-card card-left-round diary-card-item" 
+                                style="margin: 0 auto; width: 100%; border-radius: 30px;"
+                                data-title={post.data.title || ''}
+                                data-content={post.plainText}
+                                data-ym={post.yearMonth}
                                 >
                                     <div class="card-inner-content">
                                         <div class="card-icon">📖</div>
@@ -229,21 +140,91 @@ const availableMonths = Array.from(new Set(diariesWithPreview.map(p => p.yearMon
             )}
         </div>
     </main>
-
-    <Footer />
-
+            <style>
+                /* 検索・フィルターエリアのスタイル */
+                .filter-controls {
+                    display: flex;
+                    gap: 15px;
+                    justify-content: center;
+                    margin-bottom: 30px;
+                    flex-wrap: wrap;
+                }
+                .search-input, .month-select {
+                    padding: 12px 20px;
+                    border: 2px solid var(--border-color);
+                    border-radius: 30px;
+                    font-size: 0.95rem;
+                    outline: none;
+                    font-family: 'Zen Maru Gothic', sans-serif;
+                    background-color: var(--card-bg);
+                    color: var(--text-color);
+                    transition: var(--transition);
+                }
+                .search-input {
+                    width: 100%;
+                    max-width: 350px;
+                }
+                .month-select {
+                    cursor: pointer;
+                }
+                .search-input:focus, .month-select:focus {
+                    border-color: var(--accent-color);
+                    box-shadow: 0 0 8px rgba(255, 143, 171, 0.4);
+                }
+        
+                /* 3行固定＆カードサイズを揃えるためのスタイル */
+                .diary-preview-box {
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: space-between;
+                    min-height: 4.5em; 
+                }
+                .markdown-body-preview-clamp {
+                    display: -webkit-box;
+                    -webkit-line-clamp: 3;
+                    -webkit-box-orient: vertical;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    font-size: 0.95rem;
+                    color: #7d6b70;
+                    margin: 0;
+                    white-space: pre-line;
+                    line-height: 1.5;
+                }
+                .read-more-link {
+                    display: inline-block;
+                    margin-top: 8px;
+                    font-size: 0.85rem;
+                    font-weight: 700;
+                    color: var(--accent-color);
+                    text-decoration: none;
+                    transition: var(--transition);
+                }
+                .read-more-link:hover {
+                    text-decoration: underline;
+                    color: var(--accent-hover);
+                }
+        
+                /* 日記がない場合のスタイル */
+                .no-diaries {
+                    text-align: center;
+                    padding: 60px 20px;
+                    color: #9c8b91;
+                    font-size: 1.1rem;
+                }
+            </style>
     <script>
         const searchInput = document.getElementById('searchInput') as HTMLInputElement;
         const monthSelect = document.getElementById('monthSelect') as HTMLSelectElement;
         const cardsContainer = document.getElementById('cardsContainer');
         const paginationContainer = document.getElementById('paginationContainer');
-
+        
         if (cardsContainer) {
             const allCards = Array.from(cardsContainer.getElementsByClassName('diary-card-item')) as HTMLElement[];
             const ITEMS_PER_PAGE = 5; 
             let currentPage = 1;
             let filteredCards = [...allCards];
-
+            
             function updateDisplay() {
                 const totalPages = Math.ceil(filteredCards.length / ITEMS_PER_PAGE) || 1;
                 if (currentPage > totalPages) currentPage = totalPages;
@@ -307,5 +288,4 @@ const availableMonths = Array.from(new Set(diariesWithPreview.map(p => p.yearMon
             updateDisplay();
         }
     </script>
-</body>
-</html>
+</Layout>
