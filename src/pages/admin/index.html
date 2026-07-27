@@ -1,0 +1,969 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>日記管理画面 - あるふぉーとのゲーム置き場</title>
+    <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        /* ==========================================
+        Variables & Reset (かわいいふう・パステル調)
+        ========================================== */
+        :root {
+            --accent-color: #ff8fab;     /* やさしいコーラルピンク */
+            --accent-hover: #ff7597;     /* ホバー時の濃いピンク */
+            --bg-color: #fffafb;         /* ほんのり温かみのある白背景 */
+            --card-bg: #ffffff;          /* カードの背景（白） */
+            --text-color: #594a4e;       /* すこし柔らかいブラウン寄りの文字色 */
+            --border-color: #fce4ec;     /* 淡いピンクのボーダー */
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Zen Maru Gothic', sans-serif;
+            color: var(--text-color);
+            background-color: var(--bg-color);
+            line-height: 1.8;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* ==========================================
+        Header
+        ========================================== */
+
+        /* ロゴやヘッダーのリンク要素に適用するスタイル */
+        .header-logo,
+        header a {
+            color: inherit;            /* 周りの文字色を継承させる（勝手に変色させない） */
+            text-decoration: none;     /* 下線を消す */
+        }
+
+        /* ホバー時や訪問後（visited）も含めてすべて同じ色に固定したい場合 */
+        header a:visited,
+        header a:hover,
+        header a:active {
+            color: inherit;            /* 訪問後も色を変えない */
+            text-decoration: none;     /* ホバー時にも下線を出さない */
+        }
+
+        .headerNavigationMenu {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background: rgba(255, 250, 251, 0.85);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 20px rgba(255, 143, 171, 0.08);
+            z-index: 100;
+        }
+
+        .header-inner {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.15rem;
+            color: var(--accent-color);
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+
+        .header-nav ul {
+            list-style: none;
+            display: flex;
+            gap: 20px;
+        }
+
+        .header-nav a {
+            text-decoration: none;
+            color: var(--text-color);
+            font-size: 0.95rem;
+            font-weight: 500;
+            transition: var(--transition);
+        }
+
+        .header-nav a:hover, .header-nav a.active {
+            color: var(--accent-color);
+        }
+
+        /* ==========================================
+        Hero Section & Slideshow
+        ========================================== */
+        .heroSection {
+            position: relative;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 0 20px;
+            overflow: hidden;
+        }
+
+        .hero-slideshow {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+        }
+
+        .hero-slide {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-size: cover;
+            background-position: center;
+            opacity: 0;
+            transition: opacity 1.8s ease-in-out, transform 6s ease-in-out;
+            transform: scale(1);
+        }
+
+        .hero-slide.active {
+            opacity: 1;
+            transform: scale(1.05);
+        }
+
+        .heroOverlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(255, 240, 243, 0.75), rgba(255, 224, 230, 0.5));
+            z-index: 1;
+        }
+
+        .heroContent {
+            position: relative;
+            z-index: 2;
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(5px);
+            padding: 35px 55px;
+            border-radius: 35px;
+            box-shadow: 0 12px 35px rgba(255, 143, 171, 0.15);
+            border: 2px solid rgba(255, 209, 220, 0.6);
+        }
+
+        .heroContent h2 {
+            font-size: clamp(2rem, 4vw, 3rem);
+            color: var(--accent-color);
+            margin-bottom: 8px;
+            font-weight: 700;
+        }
+
+        .heroContent p {
+            font-size: 1rem;
+            color: #7d6b70;
+            font-weight: 500;
+        }
+
+        .scroll-down-indicator {
+            position: absolute;
+            bottom: 25px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: var(--accent-color);
+            font-size: 0.85rem;
+            font-weight: 700;
+            animation: bounce 2s infinite;
+            z-index: 2;
+        }
+
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateY(0) translateX(-50%); }
+            40% { transform: translateY(-8px) translateX(-50%); }
+            60% { transform: translateY(-4px) translateX(-50%); }
+        }
+
+        /* ==========================================
+        Middle Page
+        ========================================== */
+        .middle-page-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 100px 0 120px 0;
+            overflow: hidden;
+        }
+
+        .middle-page-container a {
+            color: inherit;            /* 周りの文字色を継承させる（勝手に変色させない） */
+            text-decoration: none;     /* 下線を消す */
+        }
+
+        /* ホバー時や訪問後（visited）も含めてすべて同じ色に固定したい場合 */
+        .middle-page-container a:visited,
+        .middle-page-container a:hover,
+        .middle-page-container a:active {
+            color: inherit;            /* 訪問後も色を変えない */
+            text-decoration: none;     /* ホバー時にも下線を出さない */
+        }
+
+
+        /* ==========================================
+        Line Reveal & Text Animation
+        ========================================== */
+        .welcome-msg-wrapper {
+            text-align: center;
+            margin-bottom: 70px;
+            padding: 0 20px;
+        }
+
+        .welcome-msg {
+            display: inline-block;
+            position: relative;
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--accent-color);
+            padding-bottom: 15px;
+            
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.8s ease 0.8s, transform 0.8s ease 0.8s;
+        }
+
+        .welcome-msg::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            width: 0%;
+            height: 3px;
+            background: #ffb3c6;
+            border-radius: 2px;
+            transform: translateX(-50%);
+            transition: width 0.9s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .line-reveal-trigger.show .welcome-msg::after {
+            width: 100%;
+        }
+
+        .line-reveal-trigger.show .welcome-msg {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        /* 新着日記セクション */
+        .recent-diaries-section {
+            margin-top: 60px;
+            width: 100%;
+        }
+
+        .recent-diaries-section h3 {
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+        }
+
+        /* 横並び＆スワイプ可能なカードコンテナ */
+        .diary-cards-container {
+            display: flex;
+            gap: 20px;
+            overflow-x: auto;
+            scroll-snap-type: x mandatory;
+            padding-bottom: 15px;
+            scrollbar-width: thin;
+        }
+
+        /* カード全体の幅をコンパクトにする */
+        .diary-card-sharp {
+            flex: 0 0 280px;
+            background: #fff;
+            border: 2px solid #333;
+            border-radius: 0px;
+            padding: 20px;
+            text-decoration: none;
+            color: inherit;
+            scroll-snap-align: start;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            box-shadow: 4px 4px 0px #333;
+        }
+
+        .diary-card-sharp:hover {
+            transform: translateY(-4px);
+            box-shadow: 6px 6px 0px #333;
+        }
+
+        .diary-date {
+            font-size: 0.85rem;
+            color: #666;
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        .diary-card-sharp h4 {
+            font-size: 1.1rem;
+            margin-bottom: 10px;
+            color: #222;
+            /* タイトルが長い場合の対策 */
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* 本文はJavaScriptで文字数制限するため、折り返しを許可する */
+        .diary-card-sharp p {
+            font-size: 0.9rem;
+            color: #444;
+            margin: 0;
+            white-space: normal; 
+            word-break: break-all;
+        }
+
+        /* ==========================================
+        Asymmetric Cards (突き抜け・丸みカード)
+        ========================================== */
+        .asymmetric-cards-wrapper {
+            display: flex;
+            flex-direction: column;
+            gap: 45px;
+            margin-bottom: 90px;
+        }
+
+        .asymmetric-card {
+            background: var(--card-bg);
+            padding: 40px;
+            box-shadow: 0 10px 30px rgba(255, 143, 171, 0.08);
+            border: 1px solid var(--border-color);
+        }
+
+        .card-left-round {
+            margin-left: max(20px, calc((100% - 850px) / 2));
+            border-radius: 40px 0 0 40px;
+            padding-left: max(50px, 8%);
+        }
+
+        .card-right-round {
+            margin-right: max(20px, calc((100% - 850px) / 2));
+            border-radius: 0 40px 40px 0;
+            padding-right: max(50px, 8%);
+        }
+
+        .card-inner-content {
+            display: flex;
+            align-items: flex-start;
+            gap: 25px;
+            max-width: 800px;
+        }
+
+        .card-icon {
+            font-size: 2.2rem;
+            background: #fff0f3;
+            width: 65px;
+            height: 65px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            flex-shrink: 0;
+            border: 1px solid rgba(255, 143, 171, 0.3);
+            box-shadow: 0 4px 10px rgba(255, 143, 171, 0.1);
+        }
+
+        .card-text h3 {
+            font-size: 1.3rem;
+            color: var(--accent-color);
+            margin-bottom: 12px;
+        }
+
+        .card-text p {
+            font-size: 0.98rem;
+            color: #6b5b60;
+            line-height: 1.8;
+        }
+
+        .card-text a {
+            color: var(--accent-color);
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .card-text a:hover {
+            text-decoration: underline;
+        }
+
+        /* ==========================================
+        Links Section
+        ========================================== */
+        .link-section {
+            text-align: center;
+            padding: 0 20px;
+        }
+
+        .link-section h3 {
+            font-size: 1.2rem;
+            color: var(--accent-color);
+            margin-bottom: 25px;
+            position: relative;
+            display: inline-block;
+        }
+
+        .link-section h3::after {
+            content: '';
+            display: block;
+            width: 40px;
+            height: 2px;
+            background: #ffb3c6;
+            margin: 8px auto 0 auto;
+            border-radius: 2px;
+        }
+
+        .social-links {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .social-btn {
+            display: inline-block;
+            background: var(--accent-color);
+            color: #ffffff;
+            text-decoration: none;
+            padding: 12px 30px;
+            border-radius: 30px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            box-shadow: 0 6px 15px rgba(255, 143, 171, 0.3);
+            transition: var(--transition);
+        }
+
+        .social-btn:hover {
+            background: var(--accent-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(255, 143, 171, 0.4);
+        }
+
+        /* ==========================================
+        Scroll Animations
+        ========================================== */
+        .fade-slide-left {
+            opacity: 0;
+            transform: translateX(-100px);
+            transition: opacity 1.8s cubic-bezier(0.16, 1, 0.3, 1), transform 1.8s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .fade-slide-left.show {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        .fade-slide-right {
+            opacity: 0;
+            transform: translateX(100px);
+            transition: opacity 1.8s cubic-bezier(0.16, 1, 0.3, 1), transform 1.8s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .fade-slide-right.show {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        .fade-up {
+            opacity: 0;
+            transform: translateY(40px);
+            transition: opacity 1.6s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .fade-up.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* --- 日記一覧のページネーション専用スタイル --- */
+        .pagination-container-custom {
+            display: flex !important;
+            justify-content: center !important;
+            align-items: center !important;
+            gap: 12px !important;
+            margin-top: 50px !important;
+        }
+
+        .pagination-btn-custom {
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            min-width: 42px !important;
+            height: 42px !important;
+            padding: 0 14px !important;
+            border: 2px solid var(--border-color, #fce4ec) !important;
+            background-color: var(--card-bg, #ffffff) !important;
+            color: var(--text-color, #594a4e) !important;
+            border-radius: 50% !important;
+            font-weight: 700 !important;
+            font-family: 'Zen Maru Gothic', sans-serif !important;
+            font-size: 0.95rem !important;
+            cursor: pointer !important;
+            box-shadow: 0 4px 10px rgba(255, 143, 171, 0.08) !important;
+            transition: all 0.3s ease !important;
+            outline: none !important;
+        }
+
+        .pagination-btn-custom:hover {
+            border-color: var(--accent-color, #ff8fab) !important;
+            color: var(--accent-color, #ff8fab) !important;
+            transform: translateY(-2px) !important;
+            box-shadow: 0 6px 15px rgba(255, 143, 171, 0.2) !important;
+        }
+
+        .pagination-btn-custom.active {
+            background-color: var(--accent-color, #ff8fab) !important;
+            border-color: var(--accent-color, #ff8fab) !important;
+            color: #ffffff !important;
+            box-shadow: 0 6px 15px rgba(255, 143, 171, 0.3) !important;
+            transform: translateY(-2px) !important;
+        }
+
+        /* ==========================================
+        Footer
+        ========================================== */
+        .footerNavigationMenu {
+            background: #ffffff;
+            padding: 35px 20px;
+            text-align: center;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .footer-inner {
+            max-width: 900px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .footer-nav ul {
+            list-style: none;
+            display: flex;
+            gap: 25px;
+        }
+
+        .footer-nav a {
+            text-decoration: none;
+            color: var(--text-color);
+            font-size: 0.9rem;
+            transition: var(--transition);
+        }
+
+        .footer-nav a:hover {
+            color: var(--accent-color);
+        }
+
+        .footerNavigationMenu p {
+            font-size: 0.85rem;
+            color: #9c8b91;
+        }
+        .admin-form {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            background: #fff;
+            padding: 40px;
+            border-radius: 30px;
+            box-sizing: border-box;
+            width: 100%;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+        }
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .form-group label {
+            font-weight: 700;
+            color: var(--accent-color, #ff8fab);
+            font-size: 0.95rem;
+        }
+        .form-group input, .form-group textarea {
+            padding: 12px 16px;
+            border: 2px solid #eee;
+            border-radius: 12px;
+            font-family: 'Zen Maru Gothic', sans-serif;
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.2s;
+            box-sizing: border-box;
+            width: 100%;
+        }
+        .form-group input:focus, .form-group textarea:focus {
+            border-color: var(--accent-color, #ff8fab);
+        }
+        .submit-btn {
+            background-color: var(--accent-color, #ff8fab);
+            color: white;
+            border: none;
+            padding: 14px;
+            border-radius: 15px;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: opacity 0.2s;
+            font-family: 'Zen Maru Gothic', sans-serif;
+        }
+        .submit-btn:hover {
+            opacity: 0.9;
+        }
+        .image-upload-bar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: #fff5f7;
+            padding: 12px 16px;
+            border-radius: 12px;
+            border: 2px dashed #ff8fab;
+        }
+        .image-upload-bar input[type="file"] {
+            display: none;
+        }
+        .upload-btn-label {
+            background-color: white;
+            color: var(--accent-color, #ff8fab);
+            border: 2px solid var(--accent-color, #ff8fab);
+            padding: 8px 16px;
+            border-radius: 10px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .upload-btn-label:hover {
+            background-color: var(--accent-color, #ff8fab);
+            color: white;
+        }
+        #image-msg {
+            font-size: 0.85rem;
+            color: #666;
+            font-weight: 700;
+        }
+        #result-msg {
+            font-weight: 700;
+            text-align: center;
+            font-size: 0.95rem;
+        }
+        .settings-box {
+            background: #fff5f7;
+            padding: 20px;
+            border-radius: 20px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <header class="headerNavigationMenu">
+    <div class="header-inner">
+        <h1 class="logo"><a href={`${import.meta.env.BASE_URL}/`}>Aruphy.K</a></h1>
+        <nav class="header-nav">
+            <ul>
+                <li><a href={`${import.meta.env.BASE_URL}/`}>Top</a></li>
+                <li><a href={`${import.meta.env.BASE_URL}/diary`}>日記</a></li>
+                <li><a href={`${import.meta.env.BASE_URL}/games`}>ゲーム</a></li>
+            </ul>
+        </nav>
+    </div>
+    </header>
+
+    <main>
+        <div class="middle-page-container" style="padding-top: 140px; max-width: 800px; margin: 0 auto; padding-left: 20px; padding-right: 20px; padding-bottom: 60px;">
+            <div class="welcome-msg-wrapper" style="margin-bottom: 20px;">
+                <p class="welcome-msg" style="opacity: 1; transform: translateY(0);">-日記管理画面-<br>日記ファイル生成・投稿</p>
+            </div>
+
+            <form id="diaryForm" class="admin-form">
+                
+                <!-- GitHub設定エリア -->
+                <div class="settings-box">
+                    <h3 style="font-size: 1rem; color: #333; margin-bottom: 12px;">⚙️ GitHub連携設定（初回のみ）</h3>
+                    <div style="display: flex; flex-direction: column; gap: 12px;">
+                        <div class="form-group">
+                            <label for="ghToken">Personal Access Token (GitHub)</label>
+                            <input type="password" id="ghToken" required placeholder="ghp_xxxxxxxxxxxx">
+                        </div>
+                        <div style="display: flex; gap: 10px;">
+                            <div class="form-group" style="flex: 1;">
+                                <label for="ghOwner">GitHub ユーザー名</label>
+                                <input type="text" id="ghOwner" required placeholder="例: aruphy">
+                            </div>
+                            <div class="form-group" style="flex: 1;">
+                                <label for="ghRepo">リポジトリ名</label>
+                                <input type="text" id="ghRepo" required placeholder="例: aruphy-site">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 記事入力エリア -->
+                <div class="form-group">
+                    <label for="title">タイトル</label>
+                    <input type="text" id="title" required placeholder="例：今日はボスを倒した！">
+                </div>
+
+                <div class="form-group">
+                    <label for="date">日時</label>
+                    <input type="text" id="date" required placeholder="例: 2026-07-23 24:15">
+                    <span style="font-size: 0.8rem; color: #888;">※深夜帯は24時以降の表記（24:15など）になります</span>
+                </div>
+
+                <div class="form-group">
+                    <label for="filename">ファイル名（半角英数字）</label>
+                    <input type="text" id="filename" required placeholder="例：20260723241500">
+                    <span style="font-size: 0.8rem; color: #888;">※自動で数字のみの日時が入ります（.mdは自動でつきます）</span>
+                </div>
+
+                <div class="form-group">
+                    <label>本文 & 画像挿入</label>
+                    <div class="image-upload-bar">
+                        <label for="imageFile" class="upload-btn-label">🖼️ 画像を選択してアップロード</label>
+                        <input type="file" id="imageFile" accept="image/*">
+                        <span id="image-msg">画像を選ぶと自動でGitHubに保存され、HTMLタグで本文に挿入されます</span>
+                    </div>
+                    <textarea id="content" rows="10" placeholder="ここに日記の本文を書くよ... (改行は自動でHTMLタグに変換されます)"></textarea>
+                </div>
+
+                <button type="submit" class="submit-btn">✨ GitHubに日記をCommitする</button>
+                <p id="result-msg"></p>
+            </form>
+        </div>
+    </main>
+
+    <footer class="footerNavigationMenu">
+    <div class="footer-inner">
+        <p>&copy; 2026 Aruphy.K. All Rights Reserved.</p>
+        <nav class="footer-nav">
+            <ul>
+                <li><a href="https://x.com/arufo_E217" target="_blank" rel="noopener">Twitter</a></li>
+                <li><a href="#">YouTube</a></li>
+            </ul>
+        </nav>
+    </div>
+    </footer>
+
+    <script>
+        const form = document.getElementById('diaryForm') as HTMLFormElement;
+        const resultMsg = document.getElementById('result-msg') as HTMLElement;
+        const imageFileInput = document.getElementById('imageFile') as HTMLInputElement;
+        const imageMsg = document.getElementById('image-msg') as HTMLElement;
+        const contentArea = document.getElementById('content') as HTMLTextAreaElement;
+
+        // スマホのブラウザ（LocalStorage）から前回のGitHub設定を自動復元する
+        const savedToken = localStorage.getItem('gh_token');
+        const savedOwner = localStorage.getItem('gh_owner');
+        const savedRepo = localStorage.getItem('gh_repo');
+
+        if (savedToken) (document.getElementById('ghToken') as HTMLInputElement).value = savedToken;
+        if (savedOwner) (document.getElementById('ghOwner') as HTMLInputElement).value = savedOwner;
+        if (savedRepo) (document.getElementById('ghRepo') as HTMLInputElement).value = savedRepo;
+
+        // 端末のローカル時間を正確に取得してフォームの初期値にセットする関数（4時切り替え対応）
+        const setLocalDateTimeValues = () => {
+            const now = new Date();
+            const currentHour = now.getHours();
+            const currentMinute = now.getMinutes();
+            const currentSecond = now.getSeconds();
+
+            let targetDate = new Date(now.getTime());
+            let displayHours = currentHour;
+
+            // 0:00 〜 3:59 の間は前日扱いとし、時間を +24 する（24:00 〜 27:59 表記にするため）
+            if (currentHour < 4) {
+                targetDate.setDate(targetDate.getDate() - 1);
+                displayHours = currentHour + 24;
+            }
+
+            const pad = (n: number) => String(n).padStart(2, '0');
+            
+            const year = targetDate.getFullYear();
+            const month = pad(targetDate.getMonth() + 1);
+            const day = pad(targetDate.getDate());
+            const hours = pad(displayHours);
+            const minutes = pad(currentMinute);
+            const seconds = pad(currentSecond);
+
+            // 日時入力欄（例: 2026-07-23 24:15）
+            const datetimeVal = `${year}-${month}-${day} ${hours}:${minutes}`;
+            const dateInput = document.getElementById('date') as HTMLInputElement;
+            if (dateInput && !dateInput.value) {
+                dateInput.value = datetimeVal;
+            }
+
+            // ファイル名（例: 20260723241529）
+            const filenameVal = `${year}${month}${day}${hours}${minutes}${seconds}`;
+            const filenameInput = document.getElementById('filename') as HTMLInputElement;
+            if (filenameInput && !filenameInput.value) {
+                filenameInput.value = filenameVal;
+            }
+        };
+
+        setLocalDateTimeValues();
+
+        // 画像選択時の処理（GitHubにアップロードしてHTMLタグを挿入）
+        imageFileInput.addEventListener('change', async () => {
+            const file = imageFileInput.files?.[0];
+            if (!file) return;
+
+            const token = (document.getElementById('ghToken') as HTMLInputElement).value.trim();
+            const owner = (document.getElementById('ghOwner') as HTMLInputElement).value.trim();
+            const repo = (document.getElementById('ghRepo') as HTMLInputElement).value.trim();
+
+            if (!token || !owner || !repo) {
+                alert('先に上部の「GitHub連携設定（トークン、ユーザー名、リポジトリ名）」を入力してください！');
+                imageFileInput.value = '';
+                return;
+            }
+
+            imageMsg.style.color = '#ff8fab';
+            imageMsg.textContent = '🚀 画像をGitHubへアップロード中...';
+
+            try {
+                const now = new Date();
+                const currentHour = now.getHours();
+                let targetDate = new Date(now.getTime());
+                let displayHours = currentHour;
+                if (currentHour < 4) {
+                    targetDate.setDate(targetDate.getDate() - 1);
+                    displayHours = currentHour + 24;
+                }
+                const pad = (n: number) => String(n).padStart(2, '0');
+                const timestamp = `${targetDate.getFullYear()}${pad(targetDate.getMonth() + 1)}${pad(targetDate.getDate())}${pad(displayHours)}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+                const safeImgName = `${timestamp}_${file.name.replace(/[^a-zA-Z0-9_.-]/g, '_')}`;
+                const imagePath = `public/images/diaries/${safeImgName}`;
+
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = async () => {
+                    const base64Data = (reader.result as string).split(',')[1];
+
+                    const res = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${imagePath}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            message: `Upload image: ${safeImgName}`,
+                            content: base64Data,
+                            branch: 'main'
+                        })
+                    });
+
+                    if (res.ok) {
+                        imageMsg.style.color = '#2e7d32';
+                        imageMsg.textContent = '✅ 画像のアップロード成功！本文に挿入しました';
+
+                        // MarkdownではなくHTMLタグ（imgタグ）で挿入
+                        const htmlImageTag = `\n<img src="${import.meta.env.BASE_URL}/images/diaries/${safeImgName}" alt="diary-image" style="max-width: 100%; border-radius: 12px; margin: 10px 0;">\n`;
+                        const startPos = contentArea.selectionStart;
+                        const endPos = contentArea.selectionEnd;
+                        const text = contentArea.value;
+
+                        contentArea.value = text.substring(0, startPos) + htmlImageTag + text.substring(endPos);
+                        contentArea.focus();
+                        imageFileInput.value = '';
+                    } else {
+                        const err = await res.json();
+                        imageMsg.style.color = '#c62828';
+                        imageMsg.textContent = `❌ アップロード失敗: ${err.message || 'エラー'}`;
+                    }
+                };
+            } catch (e) {
+                imageMsg.style.color = '#c62828';
+                imageMsg.textContent = '❌ 画像の読み込みに失敗しました';
+            }
+        });
+
+        // 記事全体の送信処理
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const token = (document.getElementById('ghToken') as HTMLInputElement).value.trim();
+            const owner = (document.getElementById('ghOwner') as HTMLInputElement).value.trim();
+            const repo = (document.getElementById('ghRepo') as HTMLInputElement).value.trim();
+            
+            const title = (document.getElementById('title') as HTMLInputElement).value;
+            const date = (document.getElementById('date') as HTMLInputElement).value;
+            const filename = (document.getElementById('filename') as HTMLInputElement).value.trim();
+            const rawContent = (document.getElementById('content') as HTMLTextAreaElement).value;
+
+            // 改行を <br> に自動変換（HTMLタグがそのまま反映されるようにする）
+            const content = rawContent.replace(/\r\n|\r|\n/g, '<br>\n');
+
+            localStorage.setItem('gh_token', token);
+            localStorage.setItem('gh_owner', owner);
+            localStorage.setItem('gh_repo', repo);
+
+            const safeFilename = filename.endsWith('.md') ? filename : `${filename}.md`;
+            const path = `src/content/diaries/${safeFilename}`;
+
+            const mdContent = `---
+title: "${title}"
+date: "${date}"
+---
+
+${content}
+`;
+
+            const contentEncoded = btoa(unescape(encodeURIComponent(mdContent)));
+
+            resultMsg.style.color = '#666';
+            resultMsg.textContent = '🚀 GitHubへ送信中...';
+
+            try {
+                const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${path}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message: `Add diary: ${title}`,
+                        content: contentEncoded,
+                        branch: 'main'
+                    })
+                });
+
+                if (response.ok) {
+                    resultMsg.style.color = '#2e7d32';
+                    resultMsg.textContent = '🎉 成功！GitHubへのコミットが完了しました。数分後にサイトが自動更新されます！';
+                    
+                    const now = new Date();
+                    const currentHour = now.getHours();
+                    let targetDate = new Date(now.getTime());
+                    let displayHours = currentHour;
+                    if (currentHour < 4) {
+                        targetDate.setDate(targetDate.getDate() - 1);
+                        displayHours = currentHour + 24;
+                    }
+                    const pad = (n: number) => String(n).padStart(2, '0');
+                    const newFilenameVal = `${targetDate.getFullYear()}${pad(targetDate.getMonth() + 1)}${pad(targetDate.getDate())}${pad(displayHours)}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+                    
+                    (document.getElementById('title') as HTMLInputElement).value = '';
+                    (document.getElementById('filename') as HTMLInputElement).value = newFilenameVal;
+                    (document.getElementById('content') as HTMLTextAreaElement).value = '';
+                } else {
+                    const errData = await response.json();
+                    resultMsg.style.color = '#c62828';
+                    resultMsg.textContent = `❌ エラー: ${errData.message || '送信に失敗しました'}`;
+                }
+            } catch (err) {
+                resultMsg.style.color = '#c62828';
+                resultMsg.textContent = '❌ 通信エラーが発生しました。';
+            }
+        });
+    </script>
+</body>
+</html>
