@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>高速ミニゲーミング</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    body {
+      background-color: #121212;
+      color: #ffffff;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    .game-container {
+      width: 400px;
+      height: 600px;
+      background-color: #1e1e1e;
+      border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      border: 2px solid #333;
+    }
+
+    /* 指示エリア */
+    .instruction-area {
+      height: 100px;
+      background-color: #2a2a2a;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 10px;
+      border-bottom: 2px solid #333;
+    }
+
+    .instruction-text {
+      font-size: 24px;
+      font-weight: bold;
+      text-align: center;
+      color: #ffcc00;
+    }
+
+    /* プレイエリア */
+    .play-area {
+      flex: 1;
+      position: relative;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background-color: #141414;
+      padding: 20px;
+    }
+
+    /* ステータスエリア */
+    .status-area {
+      height: 120px;
+      background-color: #2a2a2a;
+      padding: 15px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      border-top: 2px solid #333;
+    }
+
+    .status-info {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 18px;
+      font-weight: bold;
+    }
+
+    .time-text {
+      font-family: monospace;
+      color: #00ffcc;
+      font-size: 20px;
+    }
+
+    .gauge-container {
+      width: 100%;
+      height: 16px;
+      background-color: #444;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .gauge-bar {
+      width: 100%;
+      height: 100%;
+      background-color: #00ffcc;
+      transition: width 0.05s linear;
+    }
+
+    /* UI要素（ボタンなど） */
+    .btn {
+      border: none;
+      border-radius: 8px;
+      font-weight: bold;
+      cursor: pointer;
+      color: #fff;
+      transition: transform 0.1s;
+    }
+
+    .btn:active {
+      transform: scale(0.95);
+    }
+
+    .btn-big {
+      width: 160px;
+      height: 160px;
+      border-radius: 50%;
+      background-color: #ff4757;
+      font-size: 20px;
+      box-shadow: 0 6px 0 #ea2027;
+    }
+
+    .btn-big:active {
+      box-shadow: 0 2px 0 #ea2027;
+      transform: translateY(4px);
+    }
+
+    .grid-4 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+      width: 100%;
+      height: 100%;
+    }
+
+    .grid-btn {
+      font-size: 32px;
+      background-color: #3742fa;
+    }
+
+    .color-btn {
+      width: 100%;
+      height: 100%;
+    }
+
+    .start-screen, .gameover-screen {
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .start-btn {
+      padding: 12px 30px;
+      font-size: 20px;
+      background-color: #2ed573;
+      color: #000;
+    }
+  </style>
+</head>
+<body>
+
+<div class="game-container">
+  <div class="instruction-area">
+    <div id="instruction" class="instruction-text">高速ミニゲーミング</div>
+  </div>
+  
+  <div id="playArea" class="play-area">
+    <div id="screenContent" class="start-screen">
+      <button class="btn start-btn" onclick="startGame()">スタート</button>
+    </div>
+  </div>
+  
+  <div class="status-area">
+    <div class="status-info">
+      <div>成功数: <span id="scoreText">0</span></div>
+      <div id="timeText" class="time-text">3.000sec</div>
+    </div>
+    <div class="gauge-container">
+      <div id="gaugeBar" class="gauge-bar"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const LIMIT_TIME = 3.0; // 制限時間（秒）
+  
+  let score = 0;
+  let timeLeft = LIMIT_TIME;
+  let timerId = null;
+  let currentTask = null;
+  let isPlaying = false;
+
+  const instructionEl = document.getElementById('instruction');
+  const playAreaEl = document.getElementById('playArea');
+  const scoreTextEl = document.getElementById('scoreText');
+  const timeTextEl = document.getElementById('timeText');
+  const gaugeBarEl = document.getElementById('gaugeBar');
+
+  // ミニゲームの種類一覧
+  const minigames = [
+    taskBigButton,
+    taskOddNumber,
+    taskEvenNumber,
+    taskDontTouch,
+    taskColorButton
+  ];
+
+  function startGame() {
+    score = 0;
+    isPlaying = true;
+    scoreTextEl.textContent = score;
+    nextGame();
+  }
+
+  function gameOver(reason = "時間切れ！") {
+    isPlaying = false;
+    clearInterval(timerId);
+    instructionEl.textContent = "ゲームオーバー";
+    
+    playAreaEl.innerHTML = `
+      <div class="gameover-screen">
+        <p style="font-size: 18px; color: #ff6b6b;">${reason}</p>
+        <p style="font-size: 22px;">記録: ${score} 回成功</p>
+        <button class="btn start-btn" onclick="startGame()">もう一度</button>
+      </div>
+    `;
+    updateTimerDisplay(0);
+  }
+
+  function success() {
+    clearInterval(timerId);
+    score++;
+    scoreTextEl.textContent = score;
+    nextGame();
+  }
+
+  function nextGame() {
+    playAreaEl.innerHTML = '';
+    const randomIndex = Math.floor(Math.random() * minigames.length);
+    minigames[randomIndex]();
+    startTimer();
+  }
+
+  function startTimer() {
+    clearInterval(timerId);
+    timeLeft = LIMIT_TIME;
+    updateTimerDisplay(timeLeft);
+
+    const startTime = Date.now();
+    
+    timerId = setInterval(() => {
+      if (!isPlaying) return;
+      
+      const elapsed = (Date.now() - startTime) / 1000;
+      timeLeft = Math.max(0, LIMIT_TIME - elapsed);
+      updateTimerDisplay(timeLeft);
+
+      if (timeLeft <= 0) {
+        clearInterval(timerId);
+        // 「触るな」ゲームの場合は時間切れで成功
+        if (currentTask === 'dont_touch') {
+          success();
+        } else {
+          gameOver("タイムオーバー！");
+        }
+      }
+    }, 10);
+  }
+
+  function updateTimerDisplay(time) {
+    timeTextEl.textContent = time.toFixed(3) + "sec";
+    const percentage = (time / LIMIT_TIME) * 100;
+    gaugeBarEl.style.width = percentage + "%";
+    
+    // ゲージの色変更（残り時間が少ないと赤に）
+    if (percentage < 30) {
+      gaugeBarEl.style.backgroundColor = "#ff4757";
+    } else {
+      gaugeBarEl.style.backgroundColor = "#00ffcc";
+    }
+  }
+
+  // --- ミニゲームの実装 ---
+
+  // 1. でかいボタンを押せ
+  function taskBigButton() {
+    currentTask = 'big_button';
+    instructionEl.textContent = "早く押せ！";
+    
+    const btn = document.createElement('button');
+    btn.className = 'btn btn-big';
+    btn.textContent = '押せ！';
+    btn.onclick = () => success();
+    
+    playAreaEl.appendChild(btn);
+  }
+
+  // 2. 奇数を押せ (偶数3つ、奇数1つ)
+  function taskOddNumber() {
+    currentTask = 'odd_number';
+    instructionEl.textContent = "奇数を押せ！";
+    
+    const evens = [0, 2, 4, 6, 8];
+    const odds = [1, 3, 5, 7, 9];
+    
+    const target = odds[Math.floor(Math.random() * odds.length)];
+    const dummy1 = evens[Math.floor(Math.random() * evens.length)];
+    let dummy2 = evens[Math.floor(Math.random() * evens.length)];
+    let dummy3 = evens[Math.floor(Math.random() * evens.length)];
+
+    const numbers = [
+      { val: target, isCorrect: true },
+      { val: dummy1, isCorrect: false },
+      { val: dummy2, isCorrect: false },
+      { val: dummy3, isCorrect: false }
+    ].sort(() => Math.random() - 0.5);
+
+    renderGridButtons(numbers);
+  }
+
+  // 3. 偶数を押せ (奇数3つ、偶数1つ)
+  function taskEvenNumber() {
+    currentTask = 'even_number';
+    instructionEl.textContent = "偶数を押せ！";
+    
+    const evens = [0, 2, 4, 6, 8];
+    const odds = [1, 3, 5, 7, 9];
+    
+    const target = evens[Math.floor(Math.random() * evens.length)];
+    const dummy1 = odds[Math.floor(Math.random() * odds.length)];
+    let dummy2 = odds[Math.floor(Math.random() * odds.length)];
+    let dummy3 = odds[Math.floor(Math.random() * odds.length)];
+
+    const numbers = [
+      { val: target, isCorrect: true },
+      { val: dummy1, isCorrect: false },
+      { val: dummy2, isCorrect: false },
+      { val: dummy3, isCorrect: false }
+    ].sort(() => Math.random() - 0.5);
+
+    renderGridButtons(numbers);
+  }
+
+  // 4. 触るな
+  function taskDontTouch() {
+    currentTask = 'dont_touch';
+    instructionEl.textContent = "触るな！";
+    
+    const btn = document.createElement('button');
+    btn.className = 'btn btn-big';
+    btn.style.backgroundColor = '#ffa500';
+    btn.textContent = '押すな';
+    btn.onclick = () => gameOver("触ってしまった！");
+    
+    playAreaEl.appendChild(btn);
+  }
+
+  // 5. 指定の色を押せ
+  function taskColorButton() {
+    currentTask = 'color_button';
+    
+    const colors = [
+      { name: "赤", code: "#ff4757" },
+      { name: "青", code: "#1e90ff" },
+      { name: "緑", code: "#2ed573" },
+      { name: "黄", code: "#ffa500" }
+    ];
+
+    const targetColor = colors[Math.floor(Math.random() * colors.length)];
+    instructionEl.textContent = `「${targetColor.name}」を押せ！`;
+
+    const shuffled = [...colors].sort(() => Math.random() - 0.5);
+
+    const grid = document.createElement('div');
+    grid.className = 'grid-4';
+
+    shuffled.forEach(c => {
+      const btn = document.createElement('button');
+      btn.className = 'btn color-btn';
+      btn.style.backgroundColor = c.code;
+      btn.onclick = () => {
+        if (c.name === targetColor.name) {
+          success();
+        } else {
+          gameOver("違う色を押した！");
+        }
+      };
+      grid.appendChild(btn);
+    });
+
+    playAreaEl.appendChild(grid);
+  }
+
+  // 数字グリッドの描画用共通関数
+  function renderGridButtons(items) {
+    const grid = document.createElement('div');
+    grid.className = 'grid-4';
+
+    items.forEach(item => {
+      const btn = document.createElement('button');
+      btn.className = 'btn grid-btn';
+      btn.textContent = item.val;
+      btn.onclick = () => {
+        if (item.isCorrect) {
+          success();
+        } else {
+          gameOver("お手つき！");
+        }
+      };
+      grid.appendChild(btn);
+    });
+
+    playAreaEl.appendChild(grid);
+  }
+</script>
+
+</body>
+</html>
