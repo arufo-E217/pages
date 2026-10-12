@@ -31,7 +31,7 @@
       gearDropBelow: 88,                    // 上記以上、ここ未満なら歯車
       dustPerDrop: 3,                       // 粉1回の獲得個数
       gearPerDrop: 2,                       // 歯車1回の獲得個数
-      crystalPerDrop: 1                     // 結晶1回の獲得個数
+      crystalPerDrop: 3                     // 結晶1回の獲得個数
     },
     item: {
       incomePerLevelMultiplier: 2,           // アイテムLvが1増えたときの基本収入倍率
