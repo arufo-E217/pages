@@ -10,9 +10,9 @@
     gacha: {
       pullCounts: [1, 5, 10, 50, 100],       // 選べる連続ガチャ回数
       itemBaseCost: 100,                    // アイテムガチャの初回価格
-      itemCostGrowth: 1.17,                 // 1回引くごとに次の価格へ掛ける倍率
+      itemCostGrowth: 1.08,                 // 1回引くごとに次の価格へ掛ける倍率
       materialBaseCost: 50,                 // 素材ガチャの初回価格
-      materialCostGrowth: 1.14,             // 素材ガチャ価格の上昇倍率
+      materialCostGrowth: 1.07,             // 素材ガチャ価格の上昇倍率
       costCap: 1e300,                       // ガチャ価格の上限
       pityPulls: 20,                         // この回数までにレア以上が出ない場合の救済
       pityEpicChance: 0.20,                  // 救済時にエピックになる確率
