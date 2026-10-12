@@ -1,7 +1,10 @@
 ---
 import Layout from "../../layouts/layout.astro"; 
+// Astro環境変数からベースパスを取得（GitHub Pages等でのパスズレ防止）
+const base = import.meta.env.BASE_URL;
 // ゲーム・ツールのリストデータ（必要に応じてパスや説明を追加・変更できます）
 const gameList = [
+    {title: "TapForge ver.5", href: `${base}/games/tapforge_v5/index.html`, icon: "🔨", desc: "タップでアイテムを強化してゲームを有利に進めよう"},
     { title: "リズム目覚まし", href: "https://arufo-E217.github.io/top/rhythmClockGame.html", icon: "⏰", desc: "リズムに合わせてタイミングよく押そう！" },
     { title: "リズム目覚まし(fast edition)", href: "https://arufo-E217.github.io/top/rhythmClockGameFastEdition.html", icon: "⚡", desc: "さらにスピードアップした高速版！" },
     { title: "Cosmic Clicker", href: "https://arufo-E217.github.io/top/CosmicClicker.html", icon: "✨", desc: "宇宙をテーマにしたクリックゲーム。" },

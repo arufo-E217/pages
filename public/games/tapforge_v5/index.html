@@ -1,0 +1,665 @@
+
+
+<!DOCTYPE html>
+
+<html lang="ja">
+
+<head>
+
+  <meta charset="UTF-8">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+
+  <meta name="theme-color" content="#f6f5ff">
+
+  <title>TapForge — どこまでも大きく！</title>
+
+  <link rel="stylesheet" href="style.css">
+
+</head>
+
+<body>
+
+  <header class="topbar">
+
+    <a class="brand" href="#" aria-label="TapForge ホーム">
+
+      <span class="brand-mark">✦</span>
+
+      <span>TapForge<small>ちいさく始めて、宇宙級へ。</small></span>
+
+    </a>
+
+    <div class="wallet">
+
+      <div class="wallet-main">
+
+        <span class="coin">●</span>
+
+        <strong id="currency">0</strong>
+
+        <span class="unit">通貨</span>
+
+      </div>
+
+      <div class="wallet-rate"><span id="rate">0</span> 通貨 / 秒</div>
+
+    </div>
+
+  </header>
+
+
+
+  <div class="app-shell">
+
+    <nav class="tabs" aria-label="ゲームメニュー">
+
+      <button class="tab active" data-tab="home"><span>⌂</span>ホーム</button>
+
+      <button class="tab" data-tab="holdings"><span>▣</span>持ち物</button>
+      <button class="tab" data-tab="items"><span>◇</span>装備</button>
+
+      <button class="tab" data-tab="gacha"><span>✧</span>ガチャ</button>
+
+      <button class="tab" data-tab="craft"><span>⚒</span>合成・強化</button>
+      <button class="tab" data-tab="decompose"><span>♻</span>分解</button>
+      <button class="tab" data-tab="alchemy"><span>🧪</span>錬成・改造</button>
+
+      <button class="tab" data-tab="skills"><span>⌘</span>スキルツリー</button>
+      <button class="tab" data-tab="prestige"><span>✦</span>転生</button>
+      <button class="tab" data-tab="stats"><span>▤</span>記録</button>
+
+    </nav>
+
+
+
+    <main>
+
+      <!-- ホーム -->
+
+      <section class="page active" id="page-home">
+
+        <div class="welcome">
+
+          <div>
+
+            <p class="eyebrow">YOUR LITTLE EMPIRE</p>
+
+            <h1>今日もコツコツ、<br><span>でっかく稼ごう。</span></h1>
+
+            <p class="muted">タップして稼いで、アイテムを集めて、自動化しよう。</p>
+
+          </div>
+
+          <div class="mascot" aria-hidden="true">🪐</div>
+
+        </div>
+
+
+
+        <div class="home-grid">
+
+          <article class="panel tap-panel">
+
+            <div class="panel-head">
+
+              <div>
+
+                <p class="eyebrow">MANUAL INCOME</p>
+
+                <h2>タップ採掘</h2>
+
+              </div>
+
+              <span class="pill" id="tap-power-label">+1 / tap</span>
+
+            </div>
+
+
+
+            <button id="tap-button" class="tap-button" aria-label="タップして通貨を獲得">
+
+              <span class="tap-spark">✦</span>
+
+              <span class="tap-icon">⛏️</span>
+
+              <strong>採掘する！</strong>
+
+              <small>タップで通貨をゲット</small>
+
+            </button>
+
+
+
+            <div class="tap-foot">
+
+              <span>1回の獲得</span>
+
+              <strong id="tap-power">+1 通貨</strong>
+
+            </div>
+
+
+
+            <div class="upgrade-row">
+
+              <div>
+
+                <strong>タップ強化</strong>
+
+                <small>強化ごとに獲得量の35%分（最低+1）を追加</small>
+
+              </div>
+
+              <button class="buy-button" id="tap-upgrade">
+
+                強化 <span id="tap-upgrade-cost">75</span>
+
+              </button>
+
+            </div>
+
+          </article>
+
+
+
+          <article class="panel income-panel">
+
+            <div class="panel-head">
+
+              <div>
+
+                <p class="eyebrow">PASSIVE INCOME</p>
+
+                <h2>自動収入</h2>
+
+              </div>
+
+              <span class="icon-bubble">↗</span>
+
+            </div>
+
+
+
+            <div class="big-number" id="home-rate">0 <small>/ 秒</small></div>
+
+            <p class="muted">セットしたアイテムが、あなたの代わりに働きます。</p>
+
+
+
+            <div class="divider"></div>
+
+            <div class="stat-line"><span>効果発揮枠</span><strong id="slot-summary">0 / 3</strong></div>
+
+            <div class="stat-line"><span>所持アイテム</span><strong id="item-count">0 個</strong></div>
+
+            <button class="secondary-button full" data-goto="items">アイテムを管理する →</button>
+
+          </article>
+
+        </div>
+
+
+
+        <article class="panel goals-panel">
+
+          <div class="panel-head">
+
+            <div>
+
+              <p class="eyebrow">NEXT MILESTONE</p>
+
+              <h2>次の目標</h2>
+
+            </div>
+
+            <span class="pill" id="goal-badge">START</span>
+
+          </div>
+
+          <div class="goal-title" id="goal-title">まずは10回タップ！</div>
+
+          <div class="progress-track"><div id="goal-progress" class="progress-fill"></div></div>
+
+          <div class="goal-foot">
+
+            <span id="goal-description">採掘ボタンを10回タップしよう。</span>
+
+            <strong id="goal-percent">0%</strong>
+
+          </div>
+
+        </article>
+
+
+
+        <p class="tiny-note">💡 ヒント：同じアイテムを合成すると、より強いアイテムになります。</p>
+
+      </section>
+
+
+
+      <!-- アイテム -->
+
+      <section class="page" id="page-items">
+
+        <div class="page-heading">
+
+          <div>
+
+            <p class="eyebrow">YOUR COLLECTION</p>
+
+            <h1>装備管理</h1>
+
+            <p class="muted">効果発揮枠への装備・付け替えを管理しよう。</p>
+
+          </div>
+
+          <div class="heading-count">
+
+            <strong id="collection-count">0</strong>
+
+            <span>所持数</span>
+
+          </div>
+
+        </div>
+
+
+
+        <article class="panel">
+
+          <div class="panel-head">
+
+            <h2>効果発揮枠</h2>
+
+            <span class="pill" id="slot-label">0 / 3 装備中</span>
+
+          </div>
+
+          <p class="muted small">枠にセットしたアイテムだけが効果を発揮します。</p>
+
+          <div id="slots" class="slot-grid"></div>
+
+        </article>
+
+        <article class="panel equipment-items-panel">
+          <div class="panel-head"><div><h2>アイテム欄</h2><p class="muted">装備枠への追加・付け替えのために、所持アイテムをここから確認できます。</p></div><span class="pill" id="equipment-inventory-count">0 個</span></div>
+          <div id="equipment-inventory-filters" class="item-filters"></div>
+          <div id="equipment-inventory-item-grid" class="item-card-grid"></div>
+        </article>
+
+      </section>
+
+      <!-- 持ち物：通貨詳細 → 素材ポーチ → フィルター付きアイテム一覧 -->
+      <section class="page" id="page-holdings">
+        <div class="page-heading">
+          <div><p class="eyebrow">YOUR WALLET & INVENTORY</p><h1>持ち物</h1><p class="muted">通貨の動き、素材、所持アイテムをまとめて確認できます。</p></div>
+          <div class="heading-count"><strong id="collection-count-holdings">0</strong><span>所持アイテム</span></div>
+        </div>
+        <article class="panel holdings-currency-panel">
+          <div class="panel-head"><div><p class="eyebrow">CURRENCY DETAILS</p><h2>通貨の詳細情報</h2></div><span class="pill">WALLET</span></div>
+          <div class="holdings-currency-primary"><span>現在の所持通貨</span><strong id="holdings-currency">0</strong></div>
+          <div class="holdings-currency-grid">
+            <div class="holdings-stat"><span>今回の累計獲得</span><strong id="holdings-earned">0</strong></div>
+            <div class="holdings-stat"><span>自動収入</span><strong id="holdings-rate">0 / 秒</strong></div>
+            <div class="holdings-stat"><span>タップ獲得量</span><strong id="holdings-tap-power">1 / 回</strong></div>
+            <div class="holdings-stat"><span>転生回数</span><strong id="holdings-prestige-count">0 回</strong></div>
+          </div>
+          <p class="tiny-note">「今回の累計獲得」は現在の転生周回で獲得した通貨です。支出によって減少しません。</p>
+        </article>
+        <article class="panel holdings-materials-panel">
+          <div class="panel-head"><div><h2>素材ポーチ</h2><p class="muted">強化・合成・改造・錬成に使う素材</p></div><span class="pill" id="holdings-material-total">合計 0 個</span></div>
+          <div id="holdings-materials" class="material-list"></div>
+        </article>
+        <article class="panel holdings-inventory-panel">
+          <div class="panel-head"><div><h2>アイテム一覧</h2><p class="muted">名前・種類・レア度・レベル・ロック状態を組み合わせて絞り込めます。</p></div><span class="pill" id="holdings-inventory-count">0 個</span></div>
+          <div id="inventory-filters" class="item-filters"></div>
+          <div id="inventory" class="item-card-grid"></div>
+        </article>
+      </section>
+
+
+
+      <!-- ガチャ -->
+
+      <section class="page" id="page-gacha">
+
+        <div class="page-heading">
+
+          <div>
+
+            <p class="eyebrow">LUCKY FINDS</p>
+
+            <h1>ガチャ</h1>
+
+            <p class="muted">通貨を使って、頼れる相棒を見つけよう。</p>
+
+          </div>
+
+          <div class="heading-count">
+
+            <strong id="gacha-pity">0</strong>
+
+            <span>回引いたよ</span>
+
+          </div>
+
+        </div>
+
+
+
+        <div class="gacha-grid">
+
+          <article class="panel gacha-card">
+
+            <div class="gacha-art">🎁<span>✦</span></div>
+
+            <span class="pill rarity-common">ITEM GACHA</span>
+
+            <h2>アイテムガチャ</h2>
+
+            <p class="muted">自動収入を生むアイテムが出現！</p>
+
+            <div class="cost"><span>●</span><strong id="item-gacha-cost">100</strong><small>通貨 / 1回</small></div>
+            <div class="pull-count-row"><strong>連続回数</strong><div class="pull-count-options" data-gacha-count-group="item"></div></div>
+            <p class="pull-total-cost" id="item-gacha-total-cost">合計 100 通貨</p>
+            <button id="pull-item" class="primary-button full">x1で引く</button>
+
+            <p class="tiny-note">レア度が高いほど、基本収入もアップ。</p>
+
+          </article>
+
+
+
+          <article class="panel gacha-card">
+
+            <div class="gacha-art material-art">💎<span>✧</span></div>
+
+            <span class="pill rarity-rare">MATERIAL GACHA</span>
+
+            <h2>素材ガチャ</h2>
+
+            <p class="muted">合成・強化に使う素材を入手。</p>
+
+            <div class="cost"><span>●</span><strong id="material-gacha-cost">50</strong><small>通貨 / 1回</small></div>
+            <div class="pull-count-row"><strong>連続回数</strong><div class="pull-count-options" data-gacha-count-group="material"></div></div>
+            <p class="pull-total-cost" id="material-gacha-total-cost">合計 50 通貨</p>
+            <button id="pull-material" class="secondary-button full">x1で引く</button>
+
+            <p class="tiny-note">素材はアイテムの強化にも使えるよ。</p>
+
+          </article>
+
+        </div>
+
+
+
+        <div id="gacha-result" class="result-box hidden" aria-live="polite"></div>
+
+
+
+        <article class="panel odds-panel">
+
+          <h2>アイテム出現率</h2>
+
+          <div class="odds">
+
+            <span><i class="dot common"></i>コモン</span><strong>60%</strong>
+
+            <span><i class="dot uncommon"></i>アンコモン</span><strong>25%</strong>
+
+            <span><i class="dot rare"></i>レア</span><strong>12%</strong>
+
+            <span><i class="dot epic"></i>エピック</span><strong>3%</strong>
+
+          </div>
+
+        </article>
+
+      </section>
+
+
+
+      <!-- 合成・強化 -->
+      <section class="page" id="page-craft">
+        <div class="page-heading"><div><p class="eyebrow">MAKE IT BETTER</p><h1>合成・強化</h1><p class="muted">強化はレベル、合成は合成値を成長させます。</p></div></div>
+        <article class="panel craft-selector-panel">
+          <div class="panel-head"><div><h2>アイテム強化</h2><p class="muted">素材を消費して、選んだアイテムのレベルを上げます。</p></div><span class="craft-icon">⬆️</span></div>
+          <div id="upgrade-filters" class="item-filters"></div>
+          <div id="upgrade-item-grid" class="item-card-grid"></div>
+          <div id="upgrade-preview" class="preview-box"></div>
+          <button id="upgrade-item" class="primary-button full" disabled>強化する</button>
+        </article>
+        <article class="panel craft-selector-panel fusion-panel">
+          <div class="panel-head"><div><h2>合成値の合成</h2><p class="muted">対象は必ず残り、素材アイテムは結果にかかわらず消費されます。ロック中のアイテムは選べません。</p></div><button type="button" id="fusion-help-open" class="help-button" aria-label="合成ルールのヘルプ">? ヘルプ</button></div>
+          <div class="merge-selection-status">
+            <button class="secondary-button active" data-merge-slot="0" id="merge-slot-0">対象を選ぶ</button>
+            <button class="secondary-button" data-merge-slot="1" id="merge-slot-1">素材を選ぶ</button>
+            <span id="merge-selected-label" class="muted small">対象と素材となるアイテムを選択してください。</span>
+          </div>
+          <div class="fusion-equation" aria-label="合成プレビュー">
+            <div class="fusion-equation-part"><span class="fusion-box-label">対象アイテム</span><div id="merge-target-box" class="fusion-item-box empty">未選択</div></div>
+            <span class="fusion-operator">＋</span>
+            <div class="fusion-equation-part"><span class="fusion-box-label">素材アイテム</span><div id="merge-material-box" class="fusion-item-box empty">未選択</div></div>
+            <span class="fusion-operator equals">＝</span>
+            <div class="fusion-equation-part fusion-result-part"><span class="fusion-box-label">成功時の結果</span><div id="merge-result-box" class="fusion-item-box result empty">結果プレビュー</div></div>
+          </div>
+          <div id="merge-filters" class="item-filters"></div>
+          <div id="merge-item-grid" class="item-card-grid"></div>
+          <section class="fusion-material-panel">
+            <div class="fusion-material-head"><div><strong>投入する星くず結晶</strong><p id="fusion-material-requirement" class="muted small">対象と素材を選ぶと最低必要数が表示されます。</p></div><span class="pill" id="fusion-crystal-owned">所持 0 個</span></div>
+            <div class="fusion-slider-row"><input id="fusion-material-range" type="range" min="1" max="1" value="1" step="1" aria-label="合成に投入する星くず結晶" disabled><label for="fusion-material-number">投入数</label><input id="fusion-material-number" type="number" min="1" max="1" value="1" step="1" disabled><span>個</span></div>
+            <div class="fusion-material-footer"><span>最低必要数より少なくはできません。</span><strong id="fusion-material-investment">投入：—</strong></div>
+            <div id="fusion-probabilities" class="fusion-probabilities"><p class="muted">対象と素材を選ぶと、結果ごとの確率がここに表示されます。</p></div>
+          </section>
+          <div id="merge-preview" class="preview-box">合成するアイテムを2つ選んでください。</div>
+          <button id="merge-item" class="primary-button full" disabled>合成する</button>
+        </article>
+        <article class="panel materials-panel"><div class="panel-head"><h2>素材ポーチ</h2><span class="pill" id="material-total">合計 0 個</span></div><div id="materials" class="material-list"></div></article>
+      </section>
+
+      <!-- 分解 -->
+      <section class="page" id="page-decompose">
+        <div class="page-heading"><div><p class="eyebrow">RECYCLE & REFORGE</p><h1>分解</h1><p class="muted">アイテムを分解して、錬成専用の星霊エッセンスを入手。レア度・レベル・付与効果が強いほど獲得量が増えます。</p></div><div class="heading-count"><strong id="essence-count">0</strong><span>星霊エッセンス</span></div></div>
+        <article class="panel"><div class="panel-head"><div><h2>一括分解</h2><p class="muted">ロック中・装備中のアイテムは分解対象にできません。</p></div><span class="pill" id="decompose-selected-count">0 個選択</span></div>
+          <div class="bulk-actions"><button id="decompose-select-visible" class="secondary-button">表示中を全選択</button><button id="decompose-clear" class="secondary-button">選択解除</button><button id="decompose-bulk" class="danger-button" disabled>選択したアイテムを分解</button></div>
+          <div id="decompose-filters" class="item-filters"></div><div id="decompose-item-grid" class="item-card-grid"></div>
+        </article>
+      </section>
+
+      <!-- 錬成・改造 -->
+      <section class="page" id="page-alchemy">
+        <div class="page-heading"><div><p class="eyebrow">ENCHANT & MODIFY</p><h1>錬成・改造</h1><p class="muted">分解で集めた星霊エッセンスからスキル書を錬成し、通常アイテムに能力を付与します。</p></div></div>
+        <article class="panel alchemy-hero"><div class="panel-head"><div><h2>スキル書の錬成</h2><p class="muted">通常ガチャとは別枠。分解でしか手に入らない素材を使います。</p></div><div class="craft-icon">🧪</div></div><div class="alchemy-cost-line"><span>必要：🌌 星霊エッセンス</span><strong><span id="alchemy-cost">5</span> 個 / 1回</strong><span>所持：<strong id="alchemy-essence-count">0</strong> 個</span></div><div class="pull-count-row"><strong>錬成回数</strong><div class="pull-count-options" data-gacha-count-group="enchant"></div></div><p class="pull-total-cost" id="enchant-gacha-total-cost">合計 5 エッセンス</p><button id="pull-enchant" class="primary-button full">x1で錬成</button><div id="enchant-result" class="result-box hidden" aria-live="polite"></div></article>
+        <article class="panel craft-selector-panel"><div class="panel-head"><div><h2>改造</h2><p class="muted">通常アイテムとスキル書を1つずつ選択。素材ガチャ由来の素材を消費します。</p></div><span class="craft-icon">🔧</span></div>
+          <h3 class="picker-subtitle">改造する通常アイテム</h3><div id="modify-target-filters" class="item-filters"></div><div id="modify-target-grid" class="item-card-grid"></div>
+          <h3 class="picker-subtitle">付与するスキル書</h3><div id="modify-enchant-filters" class="item-filters"></div><div id="modify-enchant-grid" class="item-card-grid"></div>
+          <div id="modify-preview" class="preview-box">通常アイテムとスキル書を選択してください。</div><div class="alchemy-material-cost"><span>必要素材：</span><span>✨ きらきら粉 <strong id="modify-dust-cost">3</strong></span><span>⚙️ ちいさな歯車 <strong id="modify-gear-cost">2</strong></span><span>💎 星くず結晶 <strong id="modify-crystal-cost">1</strong></span></div><button id="modify-item" class="primary-button full" disabled>アイテムを改造する</button>
+        </article>
+        <article class="panel"><div class="panel-head"><h2>スキル書一覧</h2><span class="pill" id="enchant-count">0 個</span></div><div id="enchant-inventory" class="item-card-grid"></div></article>
+      </section>
+
+
+      <!-- スキルツリー -->
+      <section class="page" id="page-skills">
+        <div class="page-heading"><div><p class="eyebrow">BUILD YOUR STRATEGY</p><h1>スキルツリー</h1><p class="muted">今回の周回で得たスキルポイントを使って、育成方針を選ぼう。</p></div><div class="heading-count"><strong id="skill-points">0</strong><span>使用可能</span></div></div>
+        <article class="panel skill-summary"><div class="panel-head"><h2>今回の研究状況</h2><span class="pill" id="skill-earned-label">獲得 0 pt</span></div><p class="muted" id="skill-summary-text">累計獲得通貨が増えるとスキルポイントを獲得します。転生すると今回のスキルはリセットされます。</p></article>
+        <div id="skill-tree" class="skill-tree"></div>
+        <p class="tiny-note">スキルポイントは今回の累計獲得通貨に応じて増えます。各系統は段階的に強化でき、転生すると振り分けが初期化されます。</p>
+      </section>
+
+      <!-- 転生 -->
+      <section class="page" id="page-prestige">
+        <div class="page-heading"><div><p class="eyebrow">A NEW CYCLE</p><h1>転生</h1><p class="muted">今回の成長を手放し、永続する力を手に入れよう。アイテムは失われません。</p></div><div class="heading-count prestige-count"><strong id="prestige-count">0</strong><span>転生回数</span></div></div>
+        <article class="panel prestige-hero">
+          <div class="panel-head"><div><p class="eyebrow">REBIRTH REWARD</p><h2>転生の準備</h2></div><span class="pill" id="prestige-status">未解放</span></div>
+          <div class="prestige-reward"><span>✦</span><strong id="prestige-reward">0</strong><small>転生ポイント獲得予定</small></div>
+          <p id="prestige-requirement" class="muted">今回の累計獲得通貨 1,000,000 で転生できます。</p>
+          <div class="progress-track"><div class="progress-fill" id="prestige-progress"></div></div>
+          <div class="goal-foot"><span id="prestige-progress-label">0 / 1,000,000</span><strong id="prestige-progress-percent">0%</strong></div>
+          <div class="prestige-reset-list"><div><strong>リセットされる</strong><span>通貨・タップ強化・素材・今回のスキル・周回内統計</span></div><div><strong>そのまま残る</strong><span>所持アイテム・アイテムレベル・装備・転生ポイント・永続強化</span></div></div>
+          <button id="prestige-button" class="primary-button full" disabled>転生する</button>
+        </article>
+        <article class="panel permanent-panel"><div class="panel-head"><h2>永続研究</h2><span class="pill" id="prestige-points-label">0 pt 所持</span></div><p class="muted">転生ポイントを消費して購入。ここで得た強化は転生しても残ります。</p><div id="permanent-upgrades" class="permanent-upgrades"></div></article>
+        <article class="panel unlock-panel"><div class="panel-head"><h2>転生による解放</h2><span class="pill" id="unlock-count">0 系統解放</span></div><div id="prestige-unlocks" class="prestige-unlocks"></div></article>
+      </section>
+
+      <!-- 記録 -->
+
+      <section class="page" id="page-stats">
+
+        <div class="page-heading">
+
+          <div>
+
+            <p class="eyebrow">YOUR PROGRESS</p>
+
+            <h1>記録</h1>
+
+            <p class="muted">ここまでのがんばりをチェック。</p>
+
+          </div>
+
+        </div>
+
+
+
+        <div class="stats-grid">
+
+          <article class="panel stat-card"><span>累計獲得通貨</span><strong id="stat-earned">0</strong></article>
+
+          <article class="panel stat-card"><span>タップ回数</span><strong id="stat-taps">0</strong></article>
+
+          <article class="panel stat-card"><span>ガチャ回数</span><strong id="stat-pulls">0</strong></article>
+
+          <article class="panel stat-card"><span>最高レア度</span><strong id="stat-rarity">—</strong></article>
+
+        </div>
+
+
+
+        <article class="panel">
+
+          <div class="panel-head">
+
+            <h2>ゲーム設定</h2>
+
+            <span class="pill">LOCAL SAVE</span>
+
+          </div>
+
+          <p class="muted">進行状況はこのブラウザに自動保存されます。</p>
+
+          <div class="settings-row">
+
+            <div><strong>セーブデータ</strong><small>この端末のブラウザ内に保存</small></div>
+
+            <button id="save-now" class="secondary-button">今すぐ保存</button>
+
+          </div>
+
+          <div class="settings-row danger-row">
+
+            <div><strong>最初から遊ぶ</strong><small>現在の進行状況をすべて消去します。</small></div>
+
+            <button id="reset-game" class="danger-button">リセット</button>
+
+          </div>
+
+        </article>
+
+
+
+        <article class="panel limit-panel">
+
+          <div class="panel-head">
+
+            <h2>限界への道</h2>
+
+            <span class="pill">MAX TARGET</span>
+
+          </div>
+
+          <p class="muted">目標は JavaScript の Number が扱える最大値、約 1.8 × 10³⁰⁸。</p>
+
+          <div class="limit-number">1.797693 × 10<sup>308</sup></div>
+
+          <div class="progress-track"><div class="progress-fill" id="limit-progress"></div></div>
+
+          <div class="goal-foot">
+
+            <span id="limit-status">まだまだこれから！</span>
+
+            <strong id="limit-percent">0%</strong>
+
+          </div>
+
+          <p class="tiny-note">大きな数は指数表記で表示します。JavaScript標準の数値では、上限付近で小さな加算が反映されなくなります。</p>
+
+        </article>
+
+      </section>
+
+    </main>
+
+  </div>
+
+
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+
+
+  <div id="item-detail-backdrop" class="detail-backdrop hidden" role="presentation">
+    <section class="item-detail-dialog" role="dialog" aria-modal="true" aria-labelledby="item-detail-title">
+      <button id="item-detail-close" class="detail-close" aria-label="閉じる">×</button>
+      <div class="detail-item-hero"><div id="item-detail-icon" class="detail-item-icon">✨</div><div><div id="item-detail-rarity" class="pill">アイテム</div><h2 id="item-detail-title">アイテム詳細</h2><p id="item-detail-subtitle" class="muted"></p></div></div>
+      <div id="item-detail-description" class="detail-description"></div>
+      <label for="item-name-editor">アイテム名（装飾タグは b / i / u / span の色指定のみ対応）</label>
+      <textarea id="item-name-editor" rows="2" maxlength="180" spellcheck="false"></textarea>
+      <p class="tiny-note">使える装飾例：&lt;b&gt;太字&lt;/b&gt;、&lt;i&gt;斜体&lt;/i&gt;、&lt;u&gt;下線&lt;/u&gt;、&lt;span style="color:#249b61"&gt;色&lt;/span&gt;。その他のHTMLタグは無効化されます。</p>
+      <button id="item-name-save" class="secondary-button full">名前を保存</button>
+      <div class="detail-button-grid"><button id="item-detail-lock" class="secondary-button">🔒 ロックする</button><button id="item-detail-equip" class="secondary-button">装備する</button><button id="item-detail-decompose" class="danger-button">分解する</button></div>
+      <div id="item-detail-extra" class="detail-extra"></div>
+    </section>
+  </div>
+
+  <div id="fusion-help-backdrop" class="detail-backdrop hidden" role="presentation">
+    <section class="item-detail-dialog fusion-help-dialog" role="dialog" aria-modal="true" aria-labelledby="fusion-help-title">
+      <button type="button" id="fusion-help-close" class="detail-close" aria-label="閉じる">×</button>
+      <p class="eyebrow">FUSION GUIDE</p><h2 id="fusion-help-title">合成のルール</h2>
+      <div class="fusion-help-content">
+        <p><strong>1. 対象と素材</strong><br>対象と素材は同じ種類の通常アイテム同士でのみ合成できます。レベルと合成値は異なっていても構いません。対象アイテムは必ず残り、素材アイテムは結果に関係なく消滅します。ロック中・スキル書・装備中のアイテムは素材にできません。</p>
+        <p><strong>2. 必要素材と成功率</strong><br>必要な星くず結晶の最低数は、対象と素材アイテムのレア度・レベル・合成値・付与スキルに応じて増えます。最低数より多く投入すると、成功以上の結果が出やすくなります。</p>
+        <p><strong>3. 結果</strong><br>大成功：対象と素材の合成値を合算してさらに +2。<br>成功：合成値を合算してさらに +1。対象のレベルは2つのうち高い方になり、素材側の改造効果も重複を整理して引き継ぎます。<br>失敗：対象のレベル・合成値は変わりません。結晶は消費しませんが、素材アイテムは消滅します。<br>大失敗：対象の合成値が -1。結晶は消費されます。<br>超大失敗：対象の合成値が -2。0未満にはなりません。結晶は消費されます。</p>
+        <p><strong>4. 合成値がスキルに与える影響</strong><br>合成値0は1倍。合成値が1増えるごとに、そのアイテム自身のスキル効果が10%ずつ増加します。たとえば合成値 +5 は1.5倍です。</p>
+        <p><strong>5. 合成値0の特別ルール</strong><br>対象の合成値が0の場合、大失敗以下にはなりません。最低必要数を投入したときは大成功50%・成功50%です。追加投入で大成功の確率を高められます。</p>
+      </div>
+      <button type="button" id="fusion-help-close-bottom" class="primary-button full">わかった</button>
+    </section>
+  </div>
+
+  <div id="modal-backdrop" class="modal-backdrop hidden">
+
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+
+      <div id="modal-icon" class="modal-icon">✨</div>
+
+      <h2 id="modal-title">ゲット！</h2>
+
+      <p id="modal-description"></p>
+
+      <button id="modal-close" class="primary-button full">やった！</button>
+
+    </div>
+
+  </div>
+
+
+
+  <script src="script.js"></script>
+
+</body>
+
+</html>
