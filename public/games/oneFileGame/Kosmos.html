@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>KOSMOS - 宇宙再構築</title>
+    <style>
+        :root {
+            --accent: #4cc9f0;
+            --bg: #00020a;
+        }
+        body {
+            background: var(--bg);
+            color: #d1d9ff;
+            font-family: 'Segoe UI', sans-serif;
+            margin: 0;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        /* 背景の星空演出 */
+        #starfield {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle at center, #1b2735 0%, #000 100%);
+            z-index: -1;
+        }
+
+        /* タブ */
+        nav {
+            display: flex;
+            background: rgba(0, 0, 0, 0.8);
+            border-bottom: 1px solid #2a3a5a;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        .tab-btn {
+            flex: 1; padding: 15px; border: none; background: none;
+            color: #555; font-weight: bold; cursor: pointer;
+        }
+        .tab-btn.active {
+            color: var(--accent);
+            border-bottom: 2px solid var(--accent);
+        }
+
+        /* 各画面 */
+        .content {
+            display: none;
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .content.active { display: block; }
+
+        /* メイン画面：以前のレイアウトを復元 */
+        #main-tab.active {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #mass-display {
+            font-size: 2.8rem;
+            font-weight: bold;
+            color: #fff;
+            text-shadow: 0 0 20px var(--accent);
+            margin: 10px 0;
+        }
+
+        #core-container {
+            position: relative;
+            margin: 40px 0;
+        }
+        #core {
+            width: 160px; height: 160px;
+            background: radial-gradient(circle, #fff, var(--accent), #4361ee);
+            border-radius: 50%;
+            box-shadow: 0 0 40px #4361ee;
+            border: none;
+            touch-action: none;
+            transition: transform 0.05s;
+        }
+        #core:active { transform: scale(0.92); }
+
+        /* アップグレード要素 */
+        .upgrade-list { max-width: 500px; margin: 0 auto; }
+        .upgrade-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid #2a3a5a;
+            padding: 15px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-radius: 10px;
+        }
+        .upgrade-card:disabled { opacity: 0.3; }
+        .buy-btn {
+            background: var(--accent);
+            border: none; color: #000; font-weight: bold;
+            padding: 10px 15px; border-radius: 5px; cursor: pointer;
+        }
+        .buy-btn:disabled { background: #333; color: #666; }
+
+        /* コンボ表示 */
+        #combo-display {
+            color: #f1c40f;
+            font-weight: bold;
+            font-size: 1.2rem;
+            height: 1.5rem;
+        }
+    </style>
+</head>
+<body>
+
+<div id="starfield"></div>
+
+<nav>
+    <button class="tab-btn active" onclick="showTab('main-tab')">宇宙</button>
+    <button class="tab-btn" onclick="showTab('upgrade-tab')">進化</button>
+    <button class="tab-btn" onclick="showTab('stat-tab')">記録</button>
+</nav>
+
+<div id="main-tab" class="content active">
+    <div id="rank-display" style="color: var(--accent); letter-spacing: 2px;">【第一特異点】</div>
+    <div id="mass-display">0 g</div>
+    <div id="combo-display"></div>
+    
+    <div id="core-container">
+        <div id="core"></div>
+    </div>
+
+    <div style="text-align: center; font-size: 0.9rem; color: #888;">
+        自動増加: <span id="aps-val">0</span> g/s<br>
+        1タップ: <span id="tpc-val">1</span> g
+    </div>
+</div>
+
+<div id="upgrade-tab" class="content">
+    <div class="upgrade-list">
+        <h3 style="color:var(--accent)">タップ強化</h3>
+        <div id="tap-list"></div>
+        
+        <h3 style="color:#ff4757">自動収集（放置）</h3>
+        <div id="auto-list"></div>
+
+        <h3 style="color:#f1c40f">特殊補助（独自要素）</h3>
+        <div id="special-list"></div>
+    </div>
+</div>
+
+<div id="stat-tab" class="content">
+    <div class="upgrade-list">
+        <h2>観測記録</h2>
+        <p>累計獲得質量: <span id="stat-total">0 g</span></p>
+        <p>累計クリック: <span id="stat-clicks">0</span> 回</p>
+        <p>最高コンボ数: <span id="stat-max-combo">0</span></p>
+    </div>
+</div>
+
+<script>
+    let mass = 0;
+    let totalMass = 0;
+    let clicks = 0;
+    let combo = 0;
+    let maxCombo = 0;
+    let comboTimer = null;
+
+    let tapPower = 1;
+    let autoPower = 0;
+    let critChance = 0; // クリティカル率
+    let comboBonus = 1; // コンボによる倍率
+
+    const upData = {
+        tap: [
+            { id: 't1', name: '素粒子の衝突', cost: 15, grow: 1.5, add: 1 },
+            { id: 't2', name: '原子核融合', cost: 200, grow: 1.6, add: 10 }
+        ],
+        auto: [
+            { id: 'a1', name: '重力波受信', cost: 50, grow: 1.3, add: 2 },
+            { id: 'a2', name: '星間ガス吸引', cost: 500, grow: 1.4, add: 20 }
+        ],
+        special: [
+            { id: 's1', name: '重力連鎖 (Combo)', desc: '連打で獲得量UP', cost: 1000, grow: 2, add: 0.1 },
+            { id: 's2', name: '量子会心 (Critical)', desc: '1%で獲得量10倍', cost: 5000, grow: 2.5, add: 0.01 }
+        ]
+    };
+
+    const levels = {};
+
+    function init() {
+        render();
+        const core = document.getElementById('core');
+        
+        // マルチタップ対応
+        core.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            for(let i=0; i<e.changedTouches.length; i++) handleTap();
+        }, { passive: false });
+
+        core.addEventListener('mousedown', (e) => {
+            if(!('ontouchstart' in window)) handleTap();
+        });
+
+        // 1秒ごとの自動増加処理
+        setInterval(() => {
+            if (autoPower > 0) {
+                let gain = autoPower;
+                addMass(gain);
+            }
+        }, 1000);
+
+        updateUI();
+    }
+
+    function handleTap() {
+        clicks++;
+        
+        // コンボ処理
+        if(levels['s1'] > 0) {
+            combo++;
+            if(combo > maxCombo) maxCombo = combo;
+            clearTimeout(comboTimer);
+            comboTimer = setTimeout(() => { combo = 0; updateUI(); }, 1500);
+            comboBonus = 1 + (combo * (levels['s1'] * 0.05));
+        }
+
+        // クリティカル処理
+        let mult = 1;
+        if(Math.random() < (levels['s2'] * 0.01)) mult = 10;
+
+        let gain = tapPower * comboBonus * mult;
+        addMass(gain);
+        updateUI();
+    }
+
+    function addMass(val) {
+        mass += val;
+        totalMass += val;
+    }
+
+    function formatMass(g) {
+        if (g < 1000) return g.toFixed(1) + " g";
+        if (g < 1e6) return (g / 1e3).toFixed(2) + " kg";
+        if (g < 1e9) return (g / 1e6).toFixed(2) + " t";
+        return (g / 1e9).toExponential(2) + " t";
+    }
+
+    function showTab(id) {
+        document.querySelectorAll('.content').forEach(c => c.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+        event.currentTarget.classList.add('active');
+    }
+
+    function render() {
+        const createList = (list, targetId) => {
+            const container = document.getElementById(targetId);
+            list.forEach(up => {
+                levels[up.id] = 0;
+                container.innerHTML += `
+                    <div class="upgrade-card">
+                        <div>
+                            <div style="font-weight:bold">${up.name} <small>Lv.<span id="lv-${up.id}">0</span></small></div>
+                            <div style="font-size:0.7rem; color:#aaa">${up.desc || '獲得効率アップ'}</div>
+                            <div style="color:#f1c40f">Cost: <span id="cost-${up.id}">${up.cost}</span>g</div>
+                        </div>
+                        <button class="buy-btn" id="btn-${up.id}" onclick="buy('${up.id}')">進化</button>
+                    </div>
+                `;
+            });
+        };
+        createList(upData.tap, 'tap-list');
+        createList(upData.auto, 'auto-list');
+        createList(upData.special, 'special-list');
+    }
+
+    function buy(id) {
+        const all = [...upData.tap, ...upData.auto, ...upData.special];
+        const up = all.find(u => u.id === id);
+        const cost = Math.floor(up.cost * Math.pow(up.grow, levels[id]));
+
+        if (mass >= cost) {
+            mass -= cost;
+            levels[id]++;
+            
+            // 効果適用
+            if(id.startsWith('t')) tapPower += up.add;
+            if(id.startsWith('a')) autoPower += up.add;
+            
+            updateUI();
+        }
+    }
+
+    function updateUI() {
+        document.getElementById('mass-display').innerText = formatMass(mass);
+        document.getElementById('tpc-val').innerText = (tapPower * comboBonus).toFixed(1);
+        document.getElementById('aps-val').innerText = autoPower;
+        
+        document.getElementById('combo-display').innerText = combo > 1 ? `${combo} COMBO (x${comboBonus.toFixed(1)})` : '';
+        
+        // 統計
+        document.getElementById('stat-total').innerText = formatMass(totalMass);
+        document.getElementById('stat-clicks').innerText = clicks;
+        document.getElementById('stat-max-combo').innerText = maxCombo;
+
+        // ボタン更新
+        const all = [...upData.tap, ...upData.auto, ...upData.special];
+        all.forEach(up => {
+            const cost = Math.floor(up.cost * Math.pow(up.grow, levels[up.id]));
+            document.getElementById(`cost-${up.id}`).innerText = cost.toLocaleString();
+            document.getElementById(`lv-${up.id}`).innerText = levels[up.id];
+            document.getElementById(`btn-${up.id}`).disabled = mass < cost;
+        });
+    }
+
+    init();
+</script>
+</body>
+</html>

@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Difference Engine: Deep Calculus</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=STIX+Two+Text:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #fdfdfd;
+            --text-color: #222;
+            --accent-blue: #2c5282;
+            --accent-red: #9b2c2c;
+            --border-color: #ddd;
+            --disabled-bg: #f0f0f0;
+            --disabled-text: #999;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'STIX Two Text', serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            height: 100vh;
+            overflow: hidden;
+            user-select: none;
+            /* ページ全体での誤動作を防ぐ */
+            touch-action: manipulation;
+        }
+
+        #game-container {
+            width: 100%;
+            max-width: 800px;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            box-sizing: border-box;
+            border-left: 1px solid var(--border-color);
+            border-right: 1px solid var(--border-color);
+            background-color: #fff;
+            box-shadow: 0 0 20px rgba(0,0,0,0.02);
+        }
+
+        header {
+            text-align: center;
+            padding: 1.5rem 1rem 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        h1 {
+            font-size: 1.2rem;
+            font-weight: normal;
+            letter-spacing: 0.1em;
+            margin: 0 0 0.5rem 0;
+            color: #555;
+            text-transform: uppercase;
+        }
+
+        .math-text {
+            font-style: italic;
+        }
+
+        .main-variable {
+            font-size: 3.5rem;
+            font-weight: bold;
+            line-height: 1;
+            margin-bottom: 0.3rem;
+        }
+
+        .main-variable span {
+            color: var(--accent-blue);
+        }
+
+        .rate {
+            font-size: 1.2rem;
+            color: #666;
+        }
+
+        main {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        #clicker {
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            background: transparent;
+            border: 2px solid var(--text-color);
+            color: var(--text-color);
+            font-family: inherit;
+            cursor: pointer;
+            transition: transform 0.05s, box-shadow 0.2s;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            outline: none;
+            /* タップエリアでのブラウザ操作(スクロール/ズーム)を完全に無効化し、純粋なマルチタップを許可 */
+            touch-action: none; 
+        }
+
+        /* PC等でのホバー効果 */
+        @media (hover: hover) {
+            #clicker:hover {
+                box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+            }
+        }
+
+        #clicker:active {
+            transform: scale(0.96);
+        }
+
+        #clicker .math-text {
+            font-size: 3rem;
+            line-height: 1;
+            margin-bottom: 0.3rem;
+        }
+
+        #clicker span {
+            font-size: 0.9rem;
+            letter-spacing: 0.05em;
+        }
+
+        #upgrades {
+            height: 50%;
+            border-top: 1px solid var(--border-color);
+            overflow-y: auto;
+            background-color: #fafafa;
+            padding: 1rem;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 1rem;
+            align-content: start;
+        }
+
+        .upgrade-card {
+            background: #fff;
+            border: 1px solid var(--border-color);
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .upgrade-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 0.5rem;
+            font-size: 1.1rem;
+            border-bottom: 1px dashed #eee;
+            padding-bottom: 0.3rem;
+        }
+
+        .upgrade-name {
+            font-weight: bold;
+        }
+
+        .upgrade-level {
+            font-size: 0.9rem;
+            color: #555;
+        }
+
+        .upgrade-stats {
+            font-size: 0.9rem;
+            margin-bottom: 0.8rem;
+            line-height: 1.4;
+        }
+
+        .stat-total {
+            font-size: 1.1rem;
+            color: var(--accent-blue);
+            font-weight: bold;
+            margin-bottom: 0.2rem;
+        }
+
+        .stat-detail {
+            color: #666;
+            margin-left: 0.5rem;
+            font-size: 0.85rem;
+        }
+
+        .stat-bonus {
+            margin-top: 0.3rem;
+            font-size: 0.85rem;
+            color: var(--accent-red);
+        }
+
+        .action-row {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 0.5rem;
+            align-items: stretch;
+        }
+
+        .buy-btn, .rebirth-btn {
+            background: transparent;
+            font-family: inherit;
+            padding: 0.5rem;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+            touch-action: manipulation;
+            box-sizing: border-box;
+            width: 100%;
+        }
+
+        .buy-btn {
+            border: 1px solid var(--accent-blue);
+            color: var(--accent-blue);
+        }
+
+        .buy-btn:hover:not(:disabled) {
+            background: var(--accent-blue);
+            color: #fff;
+        }
+
+        .rebirth-btn {
+            border: 1px solid var(--accent-red);
+            color: var(--accent-red);
+        }
+
+        .rebirth-btn:hover:not(:disabled) {
+            background: var(--accent-red);
+            color: #fff;
+        }
+
+        .buy-btn:disabled, .rebirth-btn:disabled {
+            border-color: var(--disabled-bg);
+            color: var(--disabled-text);
+            background: var(--disabled-bg);
+            cursor: not-allowed;
+        }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #fafafa; }
+        ::-webkit-scrollbar-thumb { background: #ddd; }
+        ::-webkit-scrollbar-thumb:hover { background: #ccc; }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <header>
+        <h1>The Difference Engine</h1>
+        <div class="main-variable">
+            <span class="math-text">x</span> = <span id="display-x">0.00</span>
+        </div>
+        <div class="rate">
+            <span class="math-text">dx₁</span> (Total Rate) = <span id="display-dx-dt">0.00</span> / s
+        </div>
+    </header>
+
+    <main>
+        <button id="clicker">
+            <div class="math-text">dx</div>
+            <span id="display-tap-val">+0.10 / tap</span>
+        </button>
+    </main>
+
+    <section id="upgrades">
+        </section>
+</div>
+
+<script>
+    /**
+     * dx10までの拡張とマルチタップ機能(pointerdown)の実装
+     */
+
+    const game = {
+        x: 0,
+        lastTime: performance.now(),
+        levelToRebirth: 100,
+        rebirthBonusPerCount: 0.02, 
+
+        tap: {
+            id: 'tap', name: "Manual Differential", symbol: "dx", target: "x",
+            baseCost: 10, costMult: 1.50, baseRatePerLevel: 0.1, baseValue: 0.1, 
+            purchased: 0, rebirthCount: 0, rebirthBonus: 1.0, 
+            increase: 0, total: 0.1 
+        },
+
+        // dx10 まで拡張
+        derivatives: [
+            { id: 1, name: "Velocity", symbol: "dx₁", target: "x", baseCost: 50, costMult: 1.15, baseRatePerLevel: 1.0, purchased: 0, rebirthCount: 0, rebirthBonus: 1.0, increase: 0, accumulated: 0, total: 0 },
+            { id: 2, name: "Acceleration", symbol: "dx₂", target: "dx₁", baseCost: 500, costMult: 1.20, baseRatePerLevel: 0.5, purchased: 0, rebirthCount: 0, rebirthBonus: 1.0, increase: 0, accumulated: 0, total: 0 },
+            { id: 3, name: "Jerk", symbol: "dx₃", target: "dx₂", baseCost: 5000, costMult: 1.25, baseRatePerLevel: 0.25, purchased: 0, rebirthCount: 0, rebirthBonus: 1.0, increase: 0, accumulated: 0, total: 0 },
+            { id: 4, name: "Snap", symbol: "dx₄", target: "dx₃", baseCost: 75000, costMult: 1.30, baseRatePerLevel: 0.1, purchased: 0, rebirthCount: 0, rebirthBonus: 1.0, increase: 0, accumulated: 0, total: 0 },
+            { id: 5, name: "Crackle", symbol: "dx₅", target: "dx₄", baseCost: 1000000, costMult: 1.35, baseRatePerLevel: 0.05, purchased: 0, rebirthCount: 0, rebirthBonus: 1.0, increase: 0, accumulated: 0, total: 0 },
+            { id: 6, name: "Pop", symbol: "dx₆", target: "dx₅", baseCost: 25000000, costMult: 1.40, baseRatePerLevel: 0.01, purchased: 0, rebirthCount: 0, rebirthBonus: 1.0, increase: 0, accumulated: 0, total: 0 },
+            { id: 7, name: "Lock", symbol: "dx₇", target: "dx₆", baseCost: 1e9, costMult: 1.50, baseRatePerLevel: 0.005, purchased: 0, rebirthCount: 0, rebirthBonus: 1.0, increase: 0, accumulated: 0, total: 0 },
+            { id: 8, name: "Drop", symbol: "dx₈", target: "dx₇", baseCost: 5e10, costMult: 1.60, baseRatePerLevel: 0.001, purchased: 0, rebirthCount: 0, rebirthBonus: 1.0, increase: 0, accumulated: 0, total: 0 },
+            { id: 9, name: "Shot", symbol: "dx₉", target: "dx₈", baseCost: 5e12, costMult: 1.70, baseRatePerLevel: 0.0005, purchased: 0, rebirthCount: 0, rebirthBonus: 1.0, increase: 0, accumulated: 0, total: 0 },
+            { id: 10, name: "Put", symbol: "dx₁₀", target: "dx₉", baseCost: 1e15, costMult: 1.80, baseRatePerLevel: 0.0001, purchased: 0, rebirthCount: 0, rebirthBonus: 1.0, increase: 0, accumulated: 0, total: 0 }
+        ]
+    };
+
+    const ui = {
+        x: document.getElementById('display-x'),
+        dxdt: document.getElementById('display-dx-dt'),
+        tapVal: document.getElementById('display-tap-val'),
+        upgrades: document.getElementById('upgrades'),
+        elements: {}
+    };
+
+    function format(num) {
+        if (num < 1000) return num.toFixed(2);
+        if (num < 1e6) return Math.floor(num).toLocaleString('en-US');
+        return num.toExponential(2).replace('+', '');
+    }
+
+    function calculateValues(item, isTap = false) {
+        item.increase = (item.purchased * item.baseRatePerLevel) * item.rebirthBonus;
+        if (isTap) {
+            item.total = item.baseValue + item.increase;
+        } else {
+            item.total = item.increase + item.accumulated;
+        }
+    }
+
+    function getCost(item) {
+        return item.baseCost * Math.pow(item.costMult, item.purchased);
+    }
+
+    function createCard(item, isTap) {
+        const card = document.createElement('div');
+        card.className = 'upgrade-card';
+        const cost = getCost(item);
+        
+        let statsHTML = `
+            <div class="stat-total">
+                <i class="math-text">${item.symbol}</i> : <span id="total-${item.id}">0.00</span> ${isTap ? '/tap' : '/s'}
+            </div>
+            <div class="stat-detail">├ Increase: <span id="inc-${item.id}">0.00</span></div>
+        `;
+        
+        if (!isTap) {
+            statsHTML += `<div class="stat-detail">└ Accumulated: <span id="acc-${item.id}">0.00</span></div>`;
+        }
+        
+        statsHTML += `<div class="stat-bonus">Bonus: x<span id="bonus-${item.id}">1.00</span> (Rebirths: <span id="count-${item.id}">0</span>)</div>`;
+
+        card.innerHTML = `
+            <div>
+                <div class="upgrade-header">
+                    <span class="upgrade-name"><i class="math-text">${item.symbol}</i> : ${item.name}</span>
+                    <span class="upgrade-level" id="lv-${item.id}">Lv. 0</span>
+                </div>
+                <div class="upgrade-stats">
+                    ${statsHTML}
+                </div>
+            </div>
+            <div class="action-row">
+                <button class="buy-btn" id="btn-${item.id}">
+                    Cost: <span id="cost-${item.id}">${format(cost)}</span> <i class="math-text">x</i>
+                </button>
+                <button class="rebirth-btn" id="rbtn-${item.id}" disabled>
+                    Rebirth (Lv.${game.levelToRebirth})
+                </button>
+            </div>
+        `;
+        ui.upgrades.appendChild(card);
+
+        ui.elements[item.id] = {
+            itemRef: item,
+            isTap: isTap,
+            btn: document.getElementById(`btn-${item.id}`),
+            rbtn: document.getElementById(`rbtn-${item.id}`),
+            cost: document.getElementById(`cost-${item.id}`),
+            lv: document.getElementById(`lv-${item.id}`),
+            total: document.getElementById(`total-${item.id}`),
+            inc: document.getElementById(`inc-${item.id}`),
+            acc: document.getElementById(`acc-${item.id}`),
+            bonus: document.getElementById(`bonus-${item.id}`),
+            count: document.getElementById(`count-${item.id}`)
+        };
+
+        ui.elements[item.id].btn.addEventListener('click', () => buyUpgrade(item.id));
+        ui.elements[item.id].rbtn.addEventListener('click', () => rebirthUpgrade(item.id));
+    }
+
+    function initUI() {
+        createCard(game.tap, true);
+        game.derivatives.forEach(d => createCard(d, false));
+
+        // マルチタップ対応 (pointerdown)
+        // pointerdownは、画面に触れた指1本1本に対して個別に発火するため、
+        // 5本指で叩けば同時に5回分の処理が走ります。
+        const clicker = document.getElementById('clicker');
+        clicker.addEventListener('pointerdown', (e) => {
+            // pointerIdを持つ場合、それが主ボタン(左クリックやタッチ)か確認
+            if (e.pointerType === 'mouse' && e.button !== 0) return; 
+
+            game.x += game.tap.total;
+            updateDisplay(false);
+            
+            // 視覚的なフィードバックを JS で補強 (CSSの :active だけだとマルチタップ時に分かりづらいため)
+            clicker.style.transform = 'scale(0.94)';
+            setTimeout(() => {
+                clicker.style.transform = 'scale(1)';
+            }, 60);
+        });
+        
+        // 初期計算
+        calculateValues(game.tap, true);
+        game.derivatives.forEach(d => calculateValues(d, false));
+        updateDisplay(true);
+    }
+
+    function buyUpgrade(id) {
+        const isTap = id === 'tap';
+        const item = isTap ? game.tap : game.derivatives.find(d => d.id === id);
+        const cost = getCost(item);
+
+        if (game.x >= cost) {
+            game.x -= cost;
+            item.purchased += 1;
+            calculateValues(item, isTap);
+            updateDisplay(true);
+        }
+    }
+
+    function rebirthUpgrade(id) {
+        const isTap = id === 'tap';
+        const item = isTap ? game.tap : game.derivatives.find(d => d.id === id);
+
+        if (item.purchased >= game.levelToRebirth) {
+            item.purchased = 0;
+            item.rebirthCount += 1;
+            item.rebirthBonus = 1.0 + (item.rebirthCount * game.rebirthBonusPerCount);
+            
+            if (!isTap) {
+                item.accumulated = 0;
+            }
+            
+            calculateValues(item, isTap);
+            updateDisplay(true);
+        }
+    }
+
+    function updateDisplay(forceFullUpdate = false) {
+        ui.x.textContent = format(game.x);
+        ui.dxdt.textContent = format(game.derivatives[0].total);
+        ui.tapVal.textContent = `+${format(game.tap.total)} / tap`;
+
+        const allItems = [game.tap, ...game.derivatives];
+
+        allItems.forEach(item => {
+            const els = ui.elements[item.id];
+            const cost = getCost(item);
+
+            els.total.textContent = format(item.total);
+            if (!els.isTap) {
+                els.acc.textContent = format(item.accumulated);
+            }
+
+            if (forceFullUpdate) {
+                els.lv.textContent = `Lv. ${item.purchased}`;
+                els.inc.textContent = format(item.increase);
+                els.cost.textContent = format(cost);
+                els.bonus.textContent = item.rebirthBonus.toFixed(2);
+                els.count.textContent = item.rebirthCount;
+            }
+
+            els.btn.disabled = game.x < cost;
+            els.rbtn.disabled = item.purchased < game.levelToRebirth;
+        });
+    }
+
+    function gameLoop(currentTime) {
+        const dt = (currentTime - game.lastTime) / 1000;
+        game.lastTime = currentTime;
+
+        // 微積分の連鎖 (dx10 -> dx9 -> ... -> dx1)
+        for (let i = game.derivatives.length - 1; i >= 1; i--) {
+            game.derivatives[i - 1].accumulated += game.derivatives[i].total * dt;
+            calculateValues(game.derivatives[i - 1], false);
+        }
+
+        // 最後に dx1 (velocity) が x を増加させる
+        if (game.derivatives[0].total > 0) {
+            game.x += game.derivatives[0].total * dt;
+        }
+
+        updateDisplay(false);
+        requestAnimationFrame(gameLoop);
+    }
+
+    initUI();
+    requestAnimationFrame(gameLoop);
+
+</script>
+</body>
+</html>

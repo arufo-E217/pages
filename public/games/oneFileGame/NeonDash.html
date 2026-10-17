@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>NEON DASH - CONFIGURABLEv2</title>
+    <style>
+        :root {
+            --neon-blue: #00f2ff;
+            --neon-red: #ff3e3e;
+            --neon-green: #00ff00;
+            --neon-yellow: #ffeb3b;
+        }
+        html, body {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            overflow: hidden; background: #050505; color: #fff;
+            font-family: 'Segoe UI', sans-serif;
+            display: flex; justify-content: center; align-items: flex-start;
+        }
+        #game-container {
+            position: relative; width: 100vw; max-width: calc(100vh * 16 / 9);
+            aspect-ratio: 16 / 9; background: #0a0a0a;
+            border-bottom: 2px solid #333; box-sizing: border-box; overflow: hidden;
+        }
+        canvas { display: block; width: 100%; height: 100%; }
+        #ui-layer { position: absolute; top: 10px; left: 15px; pointer-events: none; z-index: 10; }
+        .stat-item { margin-bottom: 2px; }
+        #timer { font-size: 1.8rem; color: var(--neon-red); text-shadow: 0 0 10px #f00; }
+        #score { font-size: 1.2rem; color: var(--neon-blue); }
+        #best-info { font-size: 0.8rem; color: #888; }
+        .overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.9); display: flex;
+            flex-direction: column; justify-content: center; align-items: center;
+            z-index: 100; text-align: center;
+        }
+        h1 { margin-bottom: 10px; color: var(--neon-blue); font-size: 2.5rem; }
+        .input-group { margin: 15px 0; }
+        input {
+            background: #222; border: 1px solid var(--neon-blue);
+            color: #fff; padding: 12px; font-size: 1.2rem;
+            width: 180px; text-align: center; border-radius: 5px; outline: none;
+        }
+        button {
+            background: var(--neon-blue); border: none; padding: 15px 40px;
+            font-size: 1.2rem; font-weight: bold; cursor: pointer;
+            border-radius: 5px; transition: 0.2s;
+        }
+        button:active { transform: scale(0.95); }
+        .result-grid {
+            display: grid; grid-template-columns: 1fr 1fr;
+            gap: 8px 20px; margin: 15px 0; font-size: 1rem;
+        }
+        .res-val { font-weight: bold; text-align: left; }
+        .res-label { text-align: right; }
+        #damage-flash {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 5; transition: box-shadow 0.1s;
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <div id="damage-flash"></div>
+    <div id="ui-layer">
+        <div id="timer" class="stat-item">TIME: 30</div>
+        <div id="score" class="stat-item">SCORE: 0</div>
+        <div id="best-info" class="stat-item">BEST: 0 (Seed: ---)</div>
+    </div>
+
+    <div id="start-overlay" class="overlay">
+        <h1>NEON DASH</h1>
+        <div class="input-group">
+            <label style="display:block; font-size: 0.8rem; color:#888; margin-bottom:5px;">SEED (6 DIGITS):</label>
+            <input type="number" id="seed-input" placeholder="RANDOM" pattern="\d*">
+        </div>
+        <button onclick="initGame()">GAME START</button>
+    </div>
+
+    <div id="result-overlay" class="overlay" style="display:none;">
+        <h1 id="result-title">FINISH!</h1>
+        <div class="result-grid">
+            <span class="res-label">SCORE:</span><span id="res-score" class="res-val" style="color:var(--neon-blue)">0</span>
+            <span class="res-label">BLUE COLLECT:</span><span id="res-blue" class="res-val">0</span>
+            <span class="res-label">TIME BONUS:</span><span id="res-green" class="res-val" style="color:var(--neon-green)">0</span>
+            <span class="res-label">HIT COUNT:</span><span id="res-red" class="res-val" style="color:var(--neon-red)">0</span>
+            <span class="res-label">SEED:</span><span id="res-seed" class="res-val">0</span>
+        </div>
+        <div id="new-record" style="color:var(--neon-yellow); margin-bottom:10px; font-weight:bold; display:none;">NEW RECORD!</div>
+        <button onclick="showStart()">BACK TO MENU</button>
+    </div>
+
+    <canvas id="gameCanvas"></canvas>
+</div>
+
+<script>
+    // ==========================================
+    //  ゲーム・アイテム詳細設定
+    // ==========================================
+    const SYSTEM_CONFIG = {
+        INITIAL_TIME: 30,
+        LEVEL_UP_STEP: 1500  // 何スコアごとにレベル（敵の速度）を上げるか
+    };
+
+    const ENTITY_CONFIG = {
+        RED: { // 敵（邪魔者）
+            spawnRate: 12,      // 出現頻度（フレーム：値が小さいほど速い）
+            spawnChance: 1.0,   // 出現確率（0.0 ~ 1.0）
+            scoreMod: 0,      // ヒット時のスコア増減（ペナルティは負の数）
+            timeMod: -0.75,        // ヒット時の時間増減（秒）
+            baseSpeed: 5,
+            colorName: '--neon-red',
+            shape: 'circle'
+        },
+        BLUE: { // スコアアイテム
+            spawnRate: 25,
+            spawnChance: 1.0,
+            scoreMod: 100,
+            timeMod: 0,
+            baseSpeed: 4,
+            colorName: '--neon-blue',
+            shape: 'square'
+        },
+        GREEN: { // タイムアイテム
+            spawnRate: 90,
+            spawnChance: 0.6,
+            scoreMod: 0,
+            timeMod: 3,
+            baseSpeed: 6,
+            colorName: '--neon-green',
+            shape: 'diamond'
+        }
+    };
+
+    // ==========================================
+    //  システム内部ロジック
+    // ==========================================
+    function createPRNG(seed) {
+        return function() {
+            let t = seed += 0x6D2B79F5;
+            t = Math.imul(t ^ t >>> 15, t | 1);
+            t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+            return ((t ^ t >>> 14) >>> 0) / 4294967296;
+        };
+    }
+
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const container = document.getElementById('game-container');
+    const V_WIDTH = 1280, V_HEIGHT = 720;
+
+    let score = 0, timeLeft = 0, level = 1, gameActive = false;
+    let countBlue = 0, countGreen = 0, countRed = 0;
+    let currentSeed = 0;
+    let rndEnemy, rndBlue, rndGreen;
+
+    let player = { x: V_WIDTH/2, y: V_HEIGHT/2, r: 18 };
+    let enemies = [], items = [], timeItems = [], floatingTexts = [], frameCount = 0;
+
+    let bestData = JSON.parse(localStorage.getItem('neonDashBestData_v5')) || { score: 0, seed: '---' };
+    updateBestUI();
+
+    function resize() {
+        const rect = container.getBoundingClientRect();
+        canvas.width = rect.width;
+        canvas.height = rect.height;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    function getVirtualPos(e) {
+        const rect = container.getBoundingClientRect();
+        let clientX = e.clientX || (e.touches ? e.touches[0].clientX : 0);
+        let clientY = e.clientY || (e.touches ? e.touches[0].clientY : 0);
+        return {
+            x: (clientX - rect.left) * (V_WIDTH / rect.width),
+            y: (clientY - rect.top) * (V_HEIGHT / rect.height)
+        };
+    }
+
+    const moveHandler = e => {
+        if (!gameActive) return;
+        const pos = getVirtualPos(e);
+        player.x = pos.x; player.y = pos.y;
+    };
+    window.addEventListener('mousemove', moveHandler);
+    window.addEventListener('touchmove', e => {
+        moveHandler(e);
+        e.preventDefault();
+    }, { passive: false });
+
+    function showStart() {
+        document.getElementById('result-overlay').style.display = 'none';
+        document.getElementById('start-overlay').style.display = 'flex';
+    }
+
+    function initGame() {
+        const seedInput = document.getElementById('seed-input').value;
+        currentSeed = seedInput ? parseInt(seedInput.substring(0,6)) : Math.floor(Math.random() * 899999) + 100000;
+        
+        rndEnemy = createPRNG(currentSeed);
+        rndBlue = createPRNG(currentSeed + 1);
+        rndGreen = createPRNG(currentSeed + 2);
+        
+        score = 0; level = 1; frameCount = 0;
+        timeLeft = SYSTEM_CONFIG.INITIAL_TIME;
+        countBlue = 0; countGreen = 0; countRed = 0;
+        enemies = []; items = []; timeItems = []; floatingTexts = [];
+        
+        document.getElementById('start-overlay').style.display = 'none';
+        gameActive = true;
+        
+        let timerId = setInterval(() => {
+            if (!gameActive) { clearInterval(timerId); return; }
+            timeLeft--;
+            if (timeLeft <= 0) { timeLeft = 0; endGame(); }
+            document.getElementById('timer').innerText = `TIME: ${timeLeft}`;
+        }, 1000);
+
+        update();
+    }
+
+    function spawnLogic() {
+        frameCount++;
+        const confR = ENTITY_CONFIG.RED;
+        const confB = ENTITY_CONFIG.BLUE;
+        const confG = ENTITY_CONFIG.GREEN;
+
+        // RED Spawn (レベルに応じて頻度上昇)
+        if (frameCount % Math.max(2, (confR.spawnRate - level)) === 0) {
+            if(rndEnemy() < confR.spawnChance) {
+                enemies.push({ x: rndEnemy() * V_WIDTH, y: -30, speed: confR.baseSpeed + level + rndEnemy() * 5, r: 15 });
+            }
+        }
+        // BLUE Spawn
+        if (frameCount % confB.spawnRate === 0) {
+            if(rndBlue() < confB.spawnChance) {
+                items.push({ x: rndBlue() * V_WIDTH, y: -30, speed: confB.baseSpeed + rndBlue() * 2, r: 12 });
+            }
+        }
+        // GREEN Spawn
+        if (frameCount % confG.spawnRate === 0) {
+            if (rndGreen() < confG.spawnChance) {
+                timeItems.push({ x: rndGreen() * V_WIDTH, y: -30, speed: confG.baseSpeed, r: 16 });
+            }
+        }
+    }
+
+    function update() {
+        if (!gameActive) return;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.save();
+        ctx.scale(canvas.width / V_WIDTH, canvas.height / V_HEIGHT);
+
+        spawnLogic();
+
+        // Player
+        ctx.shadowBlur = 15; ctx.shadowColor = varColor('--neon-blue');
+        ctx.fillStyle = varColor('--neon-blue');
+        ctx.beginPath(); ctx.arc(player.x, player.y, player.r, 0, Math.PI * 2); ctx.fill();
+
+        // RED (Enemies)
+        handleEntities(enemies, ENTITY_CONFIG.RED, (hit) => {
+            if(hit) { countRed++; flashScreen("rgba(255, 0, 0, 0.7)"); }
+        });
+
+        // BLUE (Items)
+        handleEntities(items, ENTITY_CONFIG.BLUE, (hit) => {
+            if(hit) { countBlue++; checkLevel(); }
+        });
+
+        // GREEN (Time)
+        handleEntities(timeItems, ENTITY_CONFIG.GREEN, (hit) => {
+            if(hit) { countGreen++; flashScreen("rgba(0, 255, 0, 0.4)"); }
+        });
+
+        // Floating Text
+        ctx.shadowBlur = 0;
+        floatingTexts.forEach((ft, i) => {
+            ft.y -= 2; ft.life -= 0.02;
+            ctx.globalAlpha = ft.life; ctx.fillStyle = ft.color; ctx.font = "bold 26px Arial";
+            ctx.fillText(ft.text, ft.x - 30, ft.y);
+            if (ft.life <= 0) floatingTexts.splice(i, 1);
+        });
+        ctx.globalAlpha = 1.0;
+
+        ctx.restore();
+        document.getElementById('score').innerText = `SCORE: ${score}`;
+        requestAnimationFrame(update);
+    }
+
+    function handleEntities(array, config, onHit) {
+        ctx.shadowColor = varColor(config.colorName);
+        ctx.fillStyle = varColor(config.colorName);
+
+        for (let i = array.length - 1; i >= 0; i--) {
+            let ent = array[i];
+            ent.y += ent.speed;
+
+            // Draw
+            if (config.shape === 'circle') {
+                ctx.beginPath(); ctx.arc(ent.x, ent.y, ent.r, 0, Math.PI * 2); ctx.fill();
+            } else if (config.shape === 'square') {
+                ctx.fillRect(ent.x - ent.r, ent.y - ent.r, ent.r * 2, ent.r * 2);
+            } else if (config.shape === 'diamond') {
+                ctx.beginPath();
+                ctx.moveTo(ent.x, ent.y - ent.r); ctx.lineTo(ent.x + ent.r, ent.y);
+                ctx.lineTo(ent.x, ent.y + ent.r); ctx.lineTo(ent.x - ent.r, ent.y);
+                ctx.closePath(); ctx.fill();
+            }
+
+            // Collision
+            if (Math.hypot(player.x - ent.x, player.y - ent.y) < player.r + ent.r) {
+                applyEffect(config, ent.x, ent.y);
+                array.splice(i, 1);
+                onHit(true);
+            } else if (ent.y > V_HEIGHT + 50) {
+                array.splice(i, 1);
+            }
+        }
+    }
+
+    function applyEffect(config, x, y) {
+        // Score logic
+        score = Math.max(0, score + config.scoreMod);
+        
+        // Time logic
+        timeLeft = Math.max(0, timeLeft + config.timeMod);
+        document.getElementById('timer').innerText = `TIME: ${timeLeft}`;
+
+        // Text Feedback
+        if (config.scoreMod !== 0) {
+            const txt = config.scoreMod > 0 ? `+${config.scoreMod}` : `${config.scoreMod}`;
+            addText(x, y - 20, txt, varColor(config.colorName));
+        }
+        if (config.timeMod !== 0) {
+            const txt = config.timeMod > 0 ? `+${config.timeMod} SEC` : `${config.timeMod} SEC`;
+            addText(x, y + 10, txt, varColor(config.colorName));
+        }
+    }
+
+    function varColor(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+    function flashScreen(color) {
+        const flash = document.getElementById('damage-flash');
+        flash.style.boxShadow = `inset 0 0 100px ${color}`;
+        setTimeout(() => flash.style.boxShadow = "none", 150);
+    }
+    function addText(x, y, text, color) { floatingTexts.push({ x, y, text, color, life: 1.0 }); }
+    function checkLevel() { level = Math.floor(score / SYSTEM_CONFIG.LEVEL_UP_STEP) + 1; }
+    function updateBestUI() { document.getElementById('best-info').innerText = `BEST: ${bestData.score} (Seed: ${bestData.seed})`; }
+
+    function endGame() {
+        gameActive = false;
+        document.getElementById('result-overlay').style.display = 'flex';
+        document.getElementById('res-score').innerText = score;
+        document.getElementById('res-blue').innerText = countBlue;
+        document.getElementById('res-green').innerText = countGreen;
+        document.getElementById('res-red').innerText = countRed;
+        document.getElementById('res-seed').innerText = currentSeed;
+
+        const newRecordMsg = document.getElementById('new-record');
+        if (score > bestData.score) {
+            bestData = { score: score, seed: currentSeed };
+            localStorage.setItem('neonDashBestData_v5', JSON.stringify(bestData));
+            updateBestUI();
+            newRecordMsg.style.display = 'block';
+        } else {
+            newRecordMsg.style.display = 'none';
+        }
+    }
+</script>
+</body>
+</html>

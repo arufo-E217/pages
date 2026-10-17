@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Double Limit - Extreme</title>
+    <style>
+        :root {
+            --neon-green: #39ff14;
+            --neon-red: #ff3131;
+            --neon-blue: #00d4ff;
+            --bg-dark: #0a0a0c;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-dark);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        /* メインコンテナ */
+        .game-container {
+            background: #1a1a2e;
+            padding: 30px;
+            border-radius: 20px;
+            border: 4px solid #333;
+            box-shadow: 0 0 50px rgba(0,0,0,0.8);
+            text-align: center;
+            width: 380px;
+            position: relative;
+        }
+
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+
+        .balance-box { color: var(--neon-blue); }
+        
+        /* カードエリア */
+        .card-zone {
+            perspective: 1000px;
+            margin: 20px 0;
+        }
+
+        .card {
+            width: 100px;
+            height: 150px;
+            background: white;
+            color: black;
+            border-radius: 15px;
+            font-size: 60px;
+            line-height: 150px;
+            margin: 0 auto;
+            font-weight: bold;
+            box-shadow: 0 0 20px rgba(255,255,255,0.2);
+            transition: transform 0.6s;
+        }
+
+        /* 期待値表示エリア */
+        .bank-display {
+            background: #000;
+            border: 2px solid var(--neon-green);
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+        }
+
+        .bank-amount {
+            font-size: 32px;
+            color: var(--neon-green);
+            text-shadow: 0 0 10px var(--neon-green);
+        }
+
+        /* 操作パネル */
+        .bet-input-area {
+            margin-bottom: 20px;
+        }
+
+        input[type="number"] {
+            background: #222;
+            border: 1px solid #555;
+            color: white;
+            padding: 8px;
+            width: 100px;
+            border-radius: 5px;
+            text-align: center;
+            font-size: 18px;
+        }
+
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+        }
+
+        button {
+            padding: 15px 5px;
+            font-size: 14px;
+            font-weight: bold;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: 0.2s;
+            color: white;
+        }
+
+        .btn-low { background: #444; }
+        .btn-mid { background: var(--neon-blue); color: black; }
+        .btn-high { background: #444; }
+        .btn-bank {
+            grid-column: span 3;
+            background: var(--neon-green);
+            color: black;
+            font-size: 18px;
+            margin-top: 10px;
+        }
+
+        button:hover:not(:disabled) { transform: scale(1.05); filter: brightness(1.2); }
+        button:disabled { opacity: 0.3; cursor: not-allowed; }
+
+        /* 演出用クラス */
+        .win-flash { animation: flash-green 0.5s ease; }
+        .lose-shake { animation: shake 0.5s ease; }
+
+        @keyframes flash-green {
+            0% { background-color: var(--bg-dark); }
+            50% { background-color: rgba(57, 255, 20, 0.3); }
+            100% { background-color: var(--bg-dark); }
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+
+        .message { height: 24px; margin-top: 10px; font-weight: bold; }
+    </style>
+</head>
+<body id="body">
+
+    <div class="game-container" id="container">
+        <div class="status-bar">
+            <div class="balance-box">所持金: <span id="balance">1000</span></div>
+            <div id="combo-display">連勝: 0</div>
+        </div>
+
+        <div class="bet-input-area" id="bet-area">
+            掛金(元金): <input type="number" id="bet-amount" value="100" min="10">
+        </div>
+
+        <div class="card-zone">
+            <div class="card" id="card">?</div>
+        </div>
+
+        <div class="bank-display">
+            <div>現在確定したらいくら貰える？</div>
+            <div class="bank-amount" id="current-payout">0</div>
+        </div>
+
+        <div class="controls">
+            <button class="btn-low" onclick="play('low')" id="low-btn">LOW (1-6)<br>x1.8</button>
+            <button class="btn-mid" onclick="play('mid')" id="mid-btn">MID (7)<br>x10.0</button>
+            <button class="btn-high" onclick="play('high')" id="high-btn">HIGH (8-13)<br>x1.8</button>
+            
+            <button class="btn-bank" id="bank-btn" onclick="bank()" disabled>💰 確定 (BANK) 💰</button>
+        </div>
+
+        <div class="message" id="message">掛金を決めて予想してね！</div>
+    </div>
+
+    <script>
+        let balance = 1000;
+        let currentPool = 0;
+        let combo = 0;
+        let isPlaying = false;
+
+        const el = {
+            balance: document.getElementById('balance'),
+            card: document.getElementById('card'),
+            payout: document.getElementById('current-payout'),
+            msg: document.getElementById('message'),
+            bankBtn: document.getElementById('bank-btn'),
+            betInput: document.getElementById('bet-amount'),
+            betArea: document.getElementById('bet-area'),
+            body: document.getElementById('body'),
+            container: document.getElementById('container'),
+            combo: document.getElementById('combo-display')
+        };
+
+        function updateUI() {
+            el.balance.innerText = balance.toLocaleString();
+            el.payout.innerText = currentPool.toLocaleString();
+            el.combo.innerText = `連勝: ${combo}`;
+            
+            if (isPlaying) {
+                el.betInput.disabled = true;
+                el.betArea.style.opacity = "0.5";
+            } else {
+                el.betInput.disabled = false;
+                el.betArea.style.opacity = "1";
+            }
+        }
+
+        function play(guess) {
+            const betValue = parseInt(el.betInput.value);
+
+            // 初回開始時
+            if (!isPlaying) {
+                if (isNaN(betValue) || betValue < 10) {
+                    alert("掛金は10以上で入力してください。");
+                    return;
+                }
+                if (betValue > balance) {
+                    alert("所持金が足りません！");
+                    return;
+                }
+                balance -= betValue;
+                currentPool = betValue;
+                isPlaying = true;
+            }
+
+            const cardValue = Math.floor(Math.random() * 13) + 1;
+            
+            // カード演出
+            el.card.style.transform = "rotateY(360deg)";
+            setTimeout(() => {
+                el.card.innerText = cardValue;
+                el.card.style.transform = "rotateY(0deg)";
+            }, 100);
+
+            let win = false;
+            let multiplier = 0;
+
+            if (guess === 'low' && cardValue <= 6) { win = true; multiplier = 1.8; }
+            else if (guess === 'mid' && cardValue === 7) { win = true; multiplier = 10.0; }
+            else if (guess === 'high' && cardValue >= 8) { win = true; multiplier = 1.8; }
+
+            if (win) {
+                combo++;
+                // 連勝ボーナス 1.1倍（期待値を押し上げる）
+                let bonus = Math.pow(1.1, combo - 1);
+                currentPool = Math.floor(currentPool * multiplier * bonus);
+                
+                el.msg.innerText = "✨ 的中！配当アップ！ ✨";
+                el.msg.style.color = "var(--neon-green)";
+                el.body.classList.add('win-flash');
+                setTimeout(() => el.body.classList.remove('win-flash'), 500);
+                
+                el.bankBtn.disabled = false;
+            } else {
+                el.msg.innerText = "💀 没収... 次こそは！ 💀";
+                el.msg.style.color = "var(--neon-red)";
+                el.container.classList.add('lose-shake');
+                setTimeout(() => el.container.classList.remove('lose-shake'), 500);
+                
+                currentPool = 0;
+                combo = 0;
+                isPlaying = false;
+                el.bankBtn.disabled = true;
+            }
+
+            updateUI();
+        }
+
+        function bank() {
+            if (currentPool <= 0) return;
+            
+            balance += currentPool;
+            el.msg.innerText = `💰 ${currentPool} 獲得！おめでとう！ 💰`;
+            el.msg.style.color = "var(--neon-blue)";
+            
+            currentPool = 0;
+            combo = 0;
+            isPlaying = false;
+            el.bankBtn.disabled = true;
+            el.card.innerText = "?";
+            
+            updateUI();
+        }
+    </script>
+</body>
+</html>
