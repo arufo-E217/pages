@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f4f5f7">
+  <title>単語テスト生成ツール ver1.0.0</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <span class="brand">単語テスト生成ツール ver1.0.0</span>
+      <label class="theme-control" for="theme-select">
+        <span>表示テーマ</span>
+        <select id="theme-select" aria-label="表示テーマ">
+          <option value="system">端末に合わせる</option>
+          <option value="light">ライト</option>
+          <option value="dark">ダーク</option>
+        </select>
+      </label>
+    </header>
+
+    <main>
+      <nav class="tabs" role="tablist" aria-label="作業内容">
+        <button class="tab is-active" id="tab-definitions" type="button" role="tab" aria-selected="true" aria-controls="panel-definitions" data-tab="definitions">語句の定義</button>
+        <button class="tab" id="tab-generator" type="button" role="tab" aria-selected="false" aria-controls="panel-generator" data-tab="generator">テストを作成</button>
+      </nav>
+
+      <section class="tab-panel" id="panel-definitions" role="tabpanel" aria-labelledby="tab-definitions">
+        <div class="section-heading">
+          <div><h2>語句の定義</h2></div>
+          <div class="file-actions">
+            <button class="button button-secondary" id="help-definitions" type="button">ヘルプ</button>
+            <button class="button button-secondary" id="export-button" type="button">語句ファイルを書き出す</button>
+            <button class="button button-secondary" id="import-button" type="button">語句ファイルを読み込む</button>
+            <input id="import-file" type="file" accept=".txt,text/plain" hidden>
+          </div>
+        </div>
+
+        <div class="definition-layout">
+          <aside class="card section-card">
+            <div class="card-heading"><h3>セクション</h3><span class="count-badge" id="section-count">0</span></div>
+            <form id="section-form" class="inline-form">
+              <label class="sr-only" for="new-section-name">新しいセクション名</label>
+              <input id="new-section-name" type="text" placeholder="セクション名" maxlength="80" required>
+              <button class="button button-primary button-square" type="submit" aria-label="セクションを追加">＋</button>
+            </form>
+            <ul class="section-list" id="section-list"></ul>
+          </aside>
+
+          <section class="card entries-card" aria-labelledby="entries-title">
+            <div class="card-heading entries-heading">
+              <div><h3 id="entries-title">語句を登録</h3></div>
+              <span class="muted" id="entry-count">0 件</span>
+            </div>
+            <form id="entry-form" class="entry-form">
+              <div class="form-field"><label for="japanese-input">日本語</label><input id="japanese-input" type="text" placeholder="日本語" maxlength="120" required></div>
+              <div class="form-field"><label for="english-input">英単語・英熟語</label><input id="english-input" type="text" placeholder="英単語・英熟語" maxlength="160" required></div>
+              <button class="button button-primary" type="submit">語句を追加</button>
+            </form>
+            <div class="empty-state" id="entries-empty"><p>語句なし</p></div>
+            <div class="entry-table-wrap" id="entry-table-wrap" hidden>
+              <table class="entry-table"><thead><tr><th>日本語</th><th>英単語・英熟語</th><th><span class="sr-only">操作</span></th></tr></thead><tbody id="entry-table-body"></tbody></table>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <section class="tab-panel" id="panel-generator" role="tabpanel" aria-labelledby="tab-generator" hidden>
+        <div class="page-manager" aria-label="プリントページ">
+          <div class="page-tabs" id="page-tabs" role="tablist" aria-label="ページ一覧"></div>
+          <button class="button button-secondary add-page-button" id="add-page-button" type="button">＋ 次のページを作成</button>
+        </div>
+        <section class="card generator-card">
+          <div class="card-heading">
+            <h3>プリント設定</h3>
+            <div class="page-actions">
+              <button class="button button-secondary" id="help-generator" type="button">ヘルプ</button>
+              <button class="button button-danger" id="delete-page-button" type="button">ページを削除</button>
+            </div>
+          </div>
+          <div class="selection-toolbar"><span class="field-label">出題範囲</span><div><button class="text-button" id="select-all" type="button">すべて選択</button><span class="separator">/</span><button class="text-button" id="select-none" type="button">選択解除</button></div></div>
+          <div class="checkbox-list" id="generator-sections"></div>
+          <p class="helper-text" id="available-count">語句：0件</p>
+          <div class="main-settings-grid">
+            <div class="form-field"><label for="worksheet-title">タイトル</label><input id="worksheet-title" type="text" value="単語テスト" maxlength="100"></div>
+            <div class="form-field number-field"><label for="question-count">問題数</label><div class="number-control"><input id="question-count" type="number" min="1" max="500" value="30"><span>問</span></div></div>
+          </div>
+          <details class="advanced-settings">
+            <summary>詳細設定</summary>
+            <div class="advanced-fields">
+              <div class="form-field"><label for="worksheet-subtitle">サブタイトル</label><input id="worksheet-subtitle" type="text" maxlength="160"></div>
+              <div class="form-field"><label for="column-count">単語の配置</label><select id="column-count"><option value="1">1列</option><option value="2">2列</option></select></div>
+              <div class="form-field font-size-field"><label for="font-size-mode">文字サイズ</label><div class="font-size-controls"><select id="font-size-mode"><option value="auto">自動</option><option value="manual">指定</option></select><label class="manual-size" id="manual-size-wrap" hidden><input id="manual-font-size" type="number" step="any" value="12" aria-label="文字サイズ（ポイント）"><span>pt</span></label></div></div>
+              <div class="form-field name-field-group"><label class="name-checkbox"><input id="include-name-line" type="checkbox"> 名前入力欄の追加</label><div id="name-format-wrap" hidden><select id="name-format" aria-label="名前入力欄の形式"><option value="year-class-number-name">年組番名前</option><option value="class-number-name">組番名前</option><option value="name-only">名前のみ</option></select></div></div>
+            </div>
+          </details>
+          <details class="problem-settings" id="problem-settings" hidden>
+            <summary>問題設定</summary>
+            <p class="order-instruction">ドラッグで問題の並びを変更</p>
+            <div class="order-heading"><span>セクション</span><span>日本語</span><span>英単語・英熟語</span></div>
+            <ol class="question-order-list" id="question-order-list"></ol>
+          </details>
+        </section>
+        <div class="worksheet-preview" id="worksheet-preview">
+          <div class="preview-toolbar"><div><h3>プレビュー</h3><p class="fit-status" id="fit-status" aria-live="polite"></p></div><div class="pdf-buttons"><button class="button button-primary" id="download-pdf-button" type="button" disabled>問題用紙PDFをダウンロード</button><button class="button button-secondary" id="download-answer-pdf-button" type="button" disabled>解答PDFをダウンロード</button></div></div>
+          <div class="preview-error" id="preview-error" hidden><strong>プレビューを表示できません</strong><p>理由 : <span id="preview-error-reason"></span></p></div>
+          <div class="worksheet-paper" id="worksheet-paper" hidden></div>
+        </div>
+      </section>
+    </main>
+  </div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <dialog class="help-dialog" id="help-dialog" aria-labelledby="help-title">
+    <div class="help-dialog-header"><h2 id="help-title"></h2><button class="icon-button" id="close-help" type="button" aria-label="閉じる">×</button></div>
+    <ul id="help-content"></ul>
+    <button class="button button-primary" id="close-help-button" type="button">閉じる</button>
+  </dialog>
+  <script src="app.js" defer></script>
+</body>
+</html>
